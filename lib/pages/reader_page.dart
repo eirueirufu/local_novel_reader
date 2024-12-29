@@ -5,125 +5,112 @@ import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/reader_state.dart';
+import '../widgets/text_painter.dart';
 
 class ReaderPage extends StatelessWidget {
   final Book book;
-
   const ReaderPage({super.key, required this.book});
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => ReaderState(
-        book: book,
-        settingsBox: context.read<Box<ReaderSettings>>(),
-      )..loadBook(),
-      child: const ReaderView(),
-    );
-  }
-}
-
-class ReaderView extends StatelessWidget {
-  const ReaderView({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final state = context.watch<ReaderState>();
-
+    final state = context.read<ReaderState>();
     return Scaffold(
-      body: Stack(
-        children: [
-          if (state.pages.isEmpty)
-            const Center(child: CircularProgressIndicator())
-          else
-            GestureDetector(
-              onTapUp: (details) {
-                final screenWidth = MediaQuery.of(context).size.width;
-                final tapPosition = details.globalPosition.dx;
+      body: SafeArea(
+        child: Selector<ReaderState, double>(
+            builder: (context, fontSize, _) {
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = constraints.maxWidth;
+                  final height = constraints.maxHeight;
+                  return FutureBuilder(
+                    future: state.loadPages(width, height),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.done) {
+                        final state = context.read<ReaderState>();
+                        return Stack(
+                          children: [
+                            GestureDetector(
+                              onTapUp: (details) {
+                                final tapPosition = details.localPosition.dx;
 
-                if (tapPosition < screenWidth / 3) {
-                  context.read<ReaderState>().previousPage();
-                } else if (tapPosition > screenWidth * 2 / 3) {
-                  context.read<ReaderState>().nextPage();
-                } else {
-                  context.read<ReaderState>().toggleControls();
-                }
-              },
-              child: const PageContent(),
-            ),
-          if (state.showControls) ...[
-            const TopControlBar(),
-            const BottomControlBar(),
-          ],
-        ],
+                                if (tapPosition < width / 3) {
+                                  state.previousPage();
+                                } else if (tapPosition > width * 2 / 3) {
+                                  state.nextPage();
+                                } else {
+                                  state.toggleControls();
+                                }
+                              },
+                              child: PageView.builder(
+                                controller: state.pageController,
+                                itemCount: state.pages.length,
+                                onPageChanged: state.setCurrentPage,
+                                itemBuilder: (context, index) {
+                                  return Selector<ReaderState, Color>(
+                                    builder: (context, color, _) {
+                                      return Container(
+                                        color: color,
+                                        child: Stack(
+                                          children: [
+                                            CustomPaint(
+                                              size: Size(width, height),
+                                              painter: TextPagePainter(
+                                                content: state.pages[index],
+                                                textStyle: state.textStyle,
+                                              ),
+                                            ),
+                                            Positioned(
+                                              left: 0,
+                                              right: 0,
+                                              bottom: 0,
+                                              child: Text(
+                                                '${index + 1}/${state.pages.length}',
+                                                style: const TextStyle(
+                                                  color: Colors.grey,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                    selector: (_, state) =>
+                                        state.settings.backgroundColorValue,
+                                  );
+                                },
+                              ),
+                            ),
+                            Selector<ReaderState, bool>(
+                                builder: (context, show, _) {
+                                  if (show) {
+                                    return const TopControlBar();
+                                  } else {
+                                    return Container();
+                                  }
+                                },
+                                selector: (_, state) => state.showControls),
+                            Selector<ReaderState, bool>(
+                                builder: (context, show, _) {
+                                  if (show) {
+                                    return const BottomControlBar();
+                                  } else {
+                                    return Container();
+                                  }
+                                },
+                                selector: (_, state) => state.showControls),
+                          ],
+                        );
+                      } else {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                    },
+                  );
+                },
+              );
+            },
+            selector: (_, state) => state.settings.fontSize),
       ),
-    );
-  }
-}
-
-class PageContent extends StatefulWidget {
-  const PageContent({super.key});
-
-  @override
-  State<PageContent> createState() => _PageContentState();
-}
-
-class _PageContentState extends State<PageContent> {
-  late PageController _pageController;
-
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController(
-      initialPage: context.read<ReaderState>().currentPage,
-    );
-    context.read<ReaderState>().setPageController(_pageController);
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final state = context.watch<ReaderState>();
-    return PageView.builder(
-      controller: _pageController,
-      itemCount: state.pages.length,
-      onPageChanged: state.setCurrentPage,
-      itemBuilder: (context, index) {
-        return Container(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: MediaQuery.of(context).padding.top + 16,
-            bottom: 16,
-          ),
-          color: state.settings.backgroundColorValue,
-          child: Stack(
-            children: [
-              Text(
-                state.pages[index],
-                style: state.textStyle,
-              ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Text(
-                  '${index + 1}/${state.pages.length}',
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }
@@ -189,36 +176,38 @@ class BottomControlBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<ReaderState>();
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        color: Colors.black.withOpacity(0.6),
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 16,
-          bottom: MediaQuery.of(context).padding.bottom + 16,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            GestureDetector(
-              onTap: () => _showPagePickerDialog(context),
-              child: Text(
-                '${state.currentPage + 1}/${state.pages.length}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  decoration: TextDecoration.underline,
+    return Selector<ReaderState, int>(
+        builder: (context, currentPage, _) => Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                color: Colors.black.withOpacity(0.6),
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 16,
+                  bottom: MediaQuery.of(context).padding.bottom + 16,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () => _showPagePickerDialog(context),
+                      child: Text(
+                        '${state.currentPage + 1}/${state.pages.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
-      ),
-    );
+        selector: (context, state) => state.currentPage);
   }
 
   void _showPagePickerDialog(BuildContext context) {
@@ -272,63 +261,69 @@ class SettingsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<ReaderState>();
-    return Container(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).padding.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            title: const Text('字体大小'),
-            subtitle: Slider(
-              value: state.settings.fontSize,
-              min: 12,
-              max: 32,
-              divisions: 20,
-              label: state.settings.fontSize.round().toString(),
-              onChanged: state.updateFontSize,
-            ),
-          ),
-          ListTile(
-            title: const Text('背景颜色'),
-            subtitle: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
+    return Selector<ReaderState, ReaderSettings>(
+        builder: (context, settings, _) => Container(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).padding.bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Colors.white,
-                  const Color(0xFFF8F3E8), // 米色
-                  const Color(0xFFE8F3E8), // 淡绿
-                  const Color(0xFFE8E8F3), // 淡蓝
-                ]
-                    .map((color) => Padding(
-                          padding: const EdgeInsets.all(4),
-                          child: InkWell(
-                            onTap: () => state.updateBackgroundColor(color),
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: color,
-                                border: Border.all(
-                                  color: state.settings.backgroundColorValue ==
-                                          color
-                                      ? Colors.blue
-                                      : Colors.grey,
-                                  width: 2,
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                        ))
-                    .toList(),
+                  ListTile(
+                    title: const Text('字体大小'),
+                    subtitle: Slider(
+                      value: state.settings.fontSize,
+                      min: 12,
+                      max: 32,
+                      divisions: 20,
+                      label: state.settings.fontSize.round().toString(),
+                      onChanged: (double fontSize) {
+                        state.updateFontSize(fontSize);
+                      },
+                    ),
+                  ),
+                  ListTile(
+                    title: const Text('背景颜色'),
+                    subtitle: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          Colors.white,
+                          const Color(0xFFF8F3E8), // 米色
+                          const Color(0xFFE8F3E8), // 淡绿
+                          const Color(0xFFE8E8F3), // 淡蓝
+                        ]
+                            .map((color) => Padding(
+                                  padding: const EdgeInsets.all(4),
+                                  child: InkWell(
+                                    onTap: () =>
+                                        state.updateBackgroundColor(color),
+                                    child: Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: color,
+                                        border: Border.all(
+                                          color: state.settings
+                                                      .backgroundColorValue ==
+                                                  color
+                                              ? Colors.blue
+                                              : Colors.grey,
+                                          width: 2,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                  ),
+                                ))
+                            .toList(),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
-      ),
-    );
+        selector: (context, state) => state.settings);
   }
 }

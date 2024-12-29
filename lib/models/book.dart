@@ -8,20 +8,16 @@ class Book extends HiveObject {
   final String title;
 
   @HiveField(1)
-  final String filePath;
-
-  @HiveField(2)
   int lastReadPosition;
 
-  @HiveField(3)
-  List<Bookmark> bookmarks;
+  @HiveField(2)
+  String content;
 
   Book({
     required this.title,
-    required this.filePath,
     this.lastReadPosition = 0,
-    List<Bookmark>? bookmarks,
-  }) : bookmarks = bookmarks ?? [];
+    required this.content,
+  });
 }
 
 @HiveType(typeId: 1)

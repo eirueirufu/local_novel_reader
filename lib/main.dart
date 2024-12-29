@@ -15,6 +15,7 @@ void main() async {
   Hive.registerAdapter(ReaderSettingsAdapter());
 
   // 清理所有数据
+  await Hive.deleteBoxFromDisk('books');
   await Hive.deleteBoxFromDisk('settings');
 
   // 打开盒子
@@ -22,12 +23,7 @@ void main() async {
   await Hive.openBox<ReaderSettings>('settings');
 
   runApp(
-    MultiProvider(
-      providers: [
-        Provider(create: (_) => Hive.box<ReaderSettings>('settings')),
-      ],
-      child: const MyApp(),
-    ),
+    const MyApp(),
   );
 }
 

@@ -18,24 +18,21 @@ class BookAdapter extends TypeAdapter<Book> {
     };
     return Book(
       title: fields[0] as String,
-      filePath: fields[1] as String,
-      lastReadPosition: fields[2] as int,
-      bookmarks: (fields[3] as List?)?.cast<Bookmark>(),
+      lastReadPosition: fields[1] as int,
+      content: fields[2] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, Book obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(3)
       ..writeByte(0)
       ..write(obj.title)
       ..writeByte(1)
-      ..write(obj.filePath)
-      ..writeByte(2)
       ..write(obj.lastReadPosition)
-      ..writeByte(3)
-      ..write(obj.bookmarks);
+      ..writeByte(2)
+      ..write(obj.content);
   }
 
   @override

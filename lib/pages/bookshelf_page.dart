@@ -19,7 +19,6 @@ class BookshelfPage extends StatefulWidget {
 class _BookshelfPageState extends State<BookshelfPage> {
   late Box<Book> booksBox;
   late Box<ReaderSettings> settingsBox;
-  ReaderState? readerState;
 
   @override
   void initState() {
@@ -29,27 +28,15 @@ class _BookshelfPageState extends State<BookshelfPage> {
   }
 
   void _openBook(Book book) {
-    readerState?.dispose();
-    readerState = ReaderState(
-      book: book,
-      settingsBox: settingsBox,
-    )..loadBook();
-
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ChangeNotifierProvider.value(
-          value: readerState!,
-          child: const ReaderView(),
+        builder: (context) => ChangeNotifierProvider(
+          create: (_) => ReaderState(book: book, settingsBox: settingsBox),
+          child: ReaderPage(book: book),
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    readerState?.dispose();
-    super.dispose();
   }
 
   Future<void> _importBook() async {
@@ -61,11 +48,12 @@ class _BookshelfPageState extends State<BookshelfPage> {
     if (result != null) {
       File file = File(result.files.single.path!);
       String fileName = result.files.single.name;
+      String content = await file.readAsString();
 
       final book = Book(
         title: fileName,
-        filePath: file.path,
         lastReadPosition: 0,
+        content: content,
       );
 
       await booksBox.add(book);

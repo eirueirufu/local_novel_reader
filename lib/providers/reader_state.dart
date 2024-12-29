@@ -2,38 +2,74 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import '../models/book.dart';
 import '../models/reader_settings.dart';
-import 'dart:io';
 
 class ReaderState extends ChangeNotifier {
   final Book book;
   final Box<ReaderSettings> settingsBox;
   late ReaderSettings settings;
+  late TextStyle textStyle;
   List<String> pages = [];
   int currentPage = 0;
   bool showControls = false;
-  TextStyle textStyle;
   PageController? pageController;
 
   ReaderState({
     required this.book,
     required this.settingsBox,
-  }) : textStyle = TextStyle(
-          fontSize: 18,
-          height: 1.5,
-          color: Colors.black87,
-        ) {
+  }) {
     settings = settingsBox.get('default') ?? ReaderSettings();
     currentPage = book.lastReadPosition;
-    _updateTextStyle();
-  }
-
-  void _updateTextStyle() {
+    pageController = PageController(
+      initialPage: book.lastReadPosition,
+    );
     textStyle = TextStyle(
       fontSize: settings.fontSize,
       height: 1.5,
       color: Colors.black87,
     );
-    notifyListeners();
+  }
+
+  Future<void> loadPages(double width, double height) async {
+    final String content = book.content;
+    final List<String> newPages = [];
+
+    final textPainter = TextPainter(
+      text: TextSpan(text: content, style: textStyle),
+      textDirection: TextDirection.ltr,
+      maxLines: null,
+    );
+
+    textPainter.layout(maxWidth: width, minWidth: width);
+    final lineMetrics = textPainter.computeLineMetrics();
+    var nowPageHeight = 0.0;
+    var cumulativeHeight = 0.0;
+    final stringBuffer = StringBuffer();
+
+    for (var i = 0; i < lineMetrics.length - 1; i++) {
+      final metric = lineMetrics[i];
+      cumulativeHeight += metric.height;
+
+      final pos = textPainter.getPositionForOffset(
+          Offset(metric.left + metric.width, cumulativeHeight));
+      final boundary = textPainter.getLineBoundary(pos);
+      final line = content.substring(boundary.start, boundary.end);
+
+      if (nowPageHeight + metric.height <= height) {
+        stringBuffer.writeln(line);
+        nowPageHeight += metric.height;
+      } else {
+        newPages.add(stringBuffer.toString());
+        stringBuffer.clear();
+        stringBuffer.writeln(line);
+        nowPageHeight = metric.height;
+      }
+    }
+
+    if (stringBuffer.isNotEmpty) {
+      newPages.add(stringBuffer.toString());
+    }
+
+    pages = newPages;
   }
 
   void toggleControls() {
@@ -41,17 +77,21 @@ class ReaderState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateFontSize(double size) {
-    settings.fontSize = size;
-    _updateTextStyle();
+  void updateFontSize(double fontSize) {
+    settings.fontSize = fontSize;
+    textStyle = TextStyle(
+      fontSize: settings.fontSize,
+      height: 1.5,
+      color: Colors.black87,
+    );
     saveSettings();
-    loadBook();
+    notifyListeners();
   }
 
   void updateBackgroundColor(Color color) {
     settings.backgroundColorValue = color;
-    notifyListeners();
     saveSettings();
+    notifyListeners();
   }
 
   void saveSettings() {
@@ -74,31 +114,6 @@ class ReaderState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadBook() async {
-    pages = [];
-    notifyListeners();
-
-    final String content = await File(book.filePath).readAsString();
-    final List<String> newPages = [];
-
-    await Future(() async {
-      int start = 0;
-      while (start < content.length) {
-        int size = calculateWordsPerPage(content.substring(start));
-        if (size <= 0) break;
-
-        int end = start + size;
-        if (end > content.length) end = content.length;
-
-        newPages.add(content.substring(start, end));
-        start = end;
-      }
-    });
-
-    pages = newPages;
-    notifyListeners();
-  }
-
   void nextPage() {
     if (currentPage < pages.length - 1) {
       setCurrentPage(currentPage + 1);
@@ -109,47 +124,5 @@ class ReaderState extends ChangeNotifier {
     if (currentPage > 0) {
       setCurrentPage(currentPage - 1);
     }
-  }
-
-  int calculateWordsPerPage(String text) {
-    final TextPainter textPainter = TextPainter(
-      text: TextSpan(text: text, style: textStyle),
-      textDirection: TextDirection.ltr,
-      maxLines: null,
-    );
-
-    // 考虑页码的高度和边距
-    final double pageHeight =
-        WidgetsBinding.instance.window.physicalSize.height /
-                WidgetsBinding.instance.window.devicePixelRatio -
-            kToolbarHeight -
-            32 - // 上下padding
-            24; // 页码高度和间距
-    final double pageWidth = WidgetsBinding.instance.window.physicalSize.width /
-            WidgetsBinding.instance.window.devicePixelRatio -
-        32;
-
-    int start = 0;
-    int end = text.length;
-
-    while (start < end) {
-      int mid = (start + end) ~/ 2;
-      String testText = text.substring(0, mid);
-
-      textPainter.text = TextSpan(text: testText, style: textStyle);
-      textPainter.layout(maxWidth: pageWidth);
-
-      if (textPainter.height <= pageHeight) {
-        start = mid + 1;
-      } else {
-        end = mid;
-      }
-    }
-
-    return start - 1;
-  }
-
-  void setPageController(PageController controller) {
-    pageController = controller;
   }
 }
