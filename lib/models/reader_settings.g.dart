@@ -8,7 +8,7 @@ part of 'reader_settings.dart';
 
 class ReaderSettingsAdapter extends TypeAdapter<ReaderSettings> {
   @override
-  final int typeId = 2;
+  final int typeId = 1;
 
   @override
   ReaderSettings read(BinaryReader reader) {
@@ -18,6 +18,7 @@ class ReaderSettingsAdapter extends TypeAdapter<ReaderSettings> {
     };
     return ReaderSettings(
       fontSize: fields[0] as double,
+      lineHeight: fields[2] as double,
       backgroundColor: fields[1] as Color,
     );
   }
@@ -25,11 +26,13 @@ class ReaderSettingsAdapter extends TypeAdapter<ReaderSettings> {
   @override
   void write(BinaryWriter writer, ReaderSettings obj) {
     writer
-      ..writeByte(2)
+      ..writeByte(3)
       ..writeByte(0)
       ..write(obj.fontSize)
       ..writeByte(1)
-      ..write(obj.backgroundColor);
+      ..write(obj.backgroundColor)
+      ..writeByte(2)
+      ..write(obj.lineHeight);
   }
 
   @override

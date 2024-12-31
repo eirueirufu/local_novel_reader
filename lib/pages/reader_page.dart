@@ -15,7 +15,7 @@ class ReaderPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.read<ReaderState>();
     return Scaffold(
-      body: Selector<ReaderState, double>(
+      body: Selector<ReaderState, TextStyle>(
           builder: (context, fontSize, _) {
             return LayoutBuilder(
               builder: (context, constraints) {
@@ -30,7 +30,7 @@ class ReaderPage extends StatelessWidget {
                       int initPage = 0;
                       int pos = 0;
                       for (final page in state.pages) {
-                        if (pos + page.length >= book.lastReadPosition) {
+                        if (pos + page.length > book.lastReadPosition) {
                           break;
                         }
                         pos += page.length;
@@ -122,7 +122,7 @@ class ReaderPage extends StatelessWidget {
               },
             );
           },
-          selector: (_, state) => state.settings.fontSize),
+          selector: (_, state) => state.textStyle),
     );
   }
 }
@@ -291,6 +291,19 @@ class SettingsPanel extends StatelessWidget {
                       label: state.settings.fontSize.round().toString(),
                       onChanged: (double fontSize) {
                         state.updateFontSize(fontSize);
+                      },
+                    ),
+                  ),
+                  ListTile(
+                    title: const Text('行间距'),
+                    subtitle: Slider(
+                      value: state.settings.lineHeight,
+                      min: 1.0,
+                      max: 3.0,
+                      divisions: 20,
+                      label: state.settings.lineHeight.toStringAsFixed(1),
+                      onChanged: (double lineHeight) {
+                        state.updateLineHeight(lineHeight);
                       },
                     ),
                   ),

@@ -11,7 +11,6 @@ void main() async {
 
   // 注册适配器
   Hive.registerAdapter(BookAdapter());
-  Hive.registerAdapter(BookmarkAdapter());
   Hive.registerAdapter(ReaderSettingsAdapter());
 
   // 清理所有数据

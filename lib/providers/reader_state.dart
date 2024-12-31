@@ -21,7 +21,7 @@ class ReaderState extends ChangeNotifier {
 
     textStyle = TextStyle(
       fontSize: settings.fontSize,
-      height: 1.5,
+      height: settings.lineHeight,
       color: Colors.black87,
     );
   }
@@ -78,7 +78,18 @@ class ReaderState extends ChangeNotifier {
     settings.fontSize = fontSize;
     textStyle = TextStyle(
       fontSize: settings.fontSize,
-      height: 1.5,
+      height: settings.lineHeight,
+      color: Colors.black87,
+    );
+    saveSettings();
+    notifyListeners();
+  }
+
+  void updateLineHeight(double lineHeight) {
+    settings.lineHeight = lineHeight;
+    textStyle = TextStyle(
+      fontSize: settings.fontSize,
+      height: settings.lineHeight,
       color: Colors.black87,
     );
     saveSettings();
