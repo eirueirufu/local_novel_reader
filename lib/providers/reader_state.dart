@@ -18,10 +18,7 @@ class ReaderState extends ChangeNotifier {
     required this.settingsBox,
   }) {
     settings = settingsBox.get('default') ?? ReaderSettings();
-    currentPage = book.lastReadPosition;
-    pageController = PageController(
-      initialPage: book.lastReadPosition,
-    );
+
     textStyle = TextStyle(
       fontSize: settings.fontSize,
       height: 1.5,
@@ -104,7 +101,11 @@ class ReaderState extends ChangeNotifier {
 
   void setCurrentPage(int page) {
     currentPage = page;
-    book.lastReadPosition = page;
+    int pos = 0;
+    for (var i = 0; i < page; i++) {
+      pos += pages[i].length;
+    }
+    book.lastReadPosition = pos;
     pageController?.animateToPage(
       page,
       duration: const Duration(milliseconds: 200),
