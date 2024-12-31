@@ -54,7 +54,17 @@ class ReaderPage extends StatelessWidget {
                                 state.toggleControls();
                               }
                             },
+                            onHorizontalDragEnd: (details) {
+                              if (details.primaryVelocity! > 0) {
+                                // 向右滑动，上一页
+                                state.previousPage();
+                              } else if (details.primaryVelocity! < 0) {
+                                // 向左滑动，下一页
+                                state.nextPage();
+                              }
+                            },
                             child: PageView.builder(
+                              physics: const NeverScrollableScrollPhysics(),
                               controller: state.pageController,
                               itemCount: state.pages.length,
                               itemBuilder: (context, index) {
