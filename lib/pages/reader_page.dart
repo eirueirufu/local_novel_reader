@@ -57,7 +57,6 @@ class ReaderPage extends StatelessWidget {
                             child: PageView.builder(
                               controller: state.pageController,
                               itemCount: state.pages.length,
-                              onPageChanged: state.setCurrentPage,
                               itemBuilder: (context, index) {
                                 return Selector<ReaderState, Color>(
                                   builder: (context, color, _) {
@@ -187,7 +186,7 @@ class BottomControlBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<ReaderState>();
+    final state = context.read<ReaderState>();
     return Selector<ReaderState, int>(
         builder: (context, currentPage, _) => Positioned(
               bottom: 0,
