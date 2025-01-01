@@ -19,7 +19,12 @@ class ReaderState extends ChangeNotifier {
     required this.settingsBox,
   }) {
     settings = settingsBox.get('default') ?? ReaderSettings();
-    currentChapter = book.lastReadChapterIndex ?? 0;
+    if (book.lastReadChapterIndex == null || book.lastReadPosition == null) {
+      book.lastReadChapterIndex = 0;
+      book.lastReadPosition = 0;
+      saveBook();
+    }
+    currentChapter = book.lastReadChapterIndex!;
 
     textStyle = TextStyle(
       fontSize: settings.fontSize,
