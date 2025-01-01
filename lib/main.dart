@@ -4,6 +4,7 @@ import 'pages/bookshelf_page.dart';
 import 'models/book.dart';
 import 'models/reader_settings.dart';
 import 'package:provider/provider.dart';
+import 'providers/bookshelf_state.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,7 +23,13 @@ void main() async {
   await Hive.openBox<ReaderSettings>('settings');
 
   runApp(
-    const MyApp(),
+    ChangeNotifierProvider(
+      create: (_) => BookshelfState(
+        booksBox: Hive.box('books'),
+        settingsBox: Hive.box('settings'),
+      ),
+      child: const MyApp(),
+    ),
   );
 }
 

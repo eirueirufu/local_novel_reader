@@ -1,67 +1,35 @@
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
-import 'dart:io';
 import '../models/book.dart';
-import '../models/reader_settings.dart';
+import '../providers/bookshelf_state.dart';
 import '../providers/reader_state.dart';
 import 'reader_page.dart';
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 
-class BookshelfPage extends StatefulWidget {
+class BookshelfPage extends StatelessWidget {
   const BookshelfPage({super.key});
 
-  @override
-  State<BookshelfPage> createState() => _BookshelfPageState();
-}
-
-class _BookshelfPageState extends State<BookshelfPage> {
-  late Box<Book> booksBox;
-  late Box<ReaderSettings> settingsBox;
-
-  @override
-  void initState() {
-    super.initState();
-    booksBox = Hive.box('books');
-    settingsBox = Hive.box('settings');
-  }
-
-  void _openBook(Book book) {
+  void _openBook(BuildContext context, Book book) {
+    final bookshelfState = context.read<BookshelfState>();
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ChangeNotifierProvider(
-          create: (_) => ReaderState(book: book, settingsBox: settingsBox),
+          create: (_) => ReaderState(
+            book: book,
+            settingsBox: bookshelfState.settingsBox,
+          ),
           child: ReaderPage(book: book),
         ),
       ),
-    );
+    ).then((_) {
+      // 当阅读页面返回时，刷新书架
+      bookshelfState.refresh();
+    });
   }
 
-  Future<void> _importBook() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['txt'],
-    );
-
-    if (result != null) {
-      File file = File(result.files.single.path!);
-      String fileName = result.files.single.name;
-      String content = await file.readAsString();
-
-      final book = Book(
-        title: fileName,
-        content: content,
-      );
-
-      await booksBox.add(book);
-      setState(() {});
-    }
-  }
-
-  Future<void> _deleteBook(Book book) async {
+  Future<void> _deleteBook(BuildContext context, Book book) async {
+    final state = context.read<BookshelfState>();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -84,8 +52,7 @@ class _BookshelfPageState extends State<BookshelfPage> {
     );
 
     if (confirmed == true) {
-      await book.delete();
-      setState(() {});
+      await state.deleteBook(book);
     }
   }
 
@@ -95,23 +62,9 @@ class _BookshelfPageState extends State<BookshelfPage> {
       appBar: AppBar(
         title: const Text('我的书架'),
       ),
-      body: ValueListenableBuilder(
-        valueListenable: booksBox.listenable(),
-        builder: (context, Box<Book> box, _) {
-          final books = box.values.toList()
-            ..sort((a, b) {
-              // 如果两本书都没有阅读时间，按添加顺序排序
-              if (a.lastReadTime == null && b.lastReadTime == null) {
-                return 0;
-              }
-              // 没有阅读时间的书排在后面
-              if (a.lastReadTime == null) return 1;
-              if (b.lastReadTime == null) return -1;
-
-              // 按时间倒序排序
-              return b.lastReadTime!.compareTo(a.lastReadTime!);
-            });
-
+      body: Consumer<BookshelfState>(
+        builder: (context, state, _) {
+          final books = state.books;
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: books.length,
@@ -123,11 +76,12 @@ class _BookshelfPageState extends State<BookshelfPage> {
                 lastRead =
                     '上次阅读：${DateFormat('yyyy-MM-dd HH:mm').format(book.lastReadTime!)}';
               }
+
               return Card(
                 margin: const EdgeInsets.only(bottom: 16),
                 child: ListTile(
-                  onTap: () => _openBook(book),
-                  onLongPress: () => _deleteBook(book),
+                  onTap: () => _openBook(context, book),
+                  onLongPress: () => _deleteBook(context, book),
                   leading: Icon(
                     Icons.book,
                     size: 40,
@@ -154,7 +108,7 @@ class _BookshelfPageState extends State<BookshelfPage> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _importBook,
+        onPressed: () => context.read<BookshelfState>().importBook(),
         child: const Icon(Icons.add),
       ),
     );
