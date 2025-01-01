@@ -52,7 +52,6 @@ class _BookshelfPageState extends State<BookshelfPage> {
 
       final book = Book(
         title: fileName,
-        lastReadPosition: 0,
         content: content,
       );
 

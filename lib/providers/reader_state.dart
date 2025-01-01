@@ -9,6 +9,7 @@ class ReaderState extends ChangeNotifier {
   late ReaderSettings settings;
   late TextStyle textStyle;
   List<String> pages = [];
+  int currentChapter = 0;
   int currentPage = 0;
   bool showControls = false;
   PageController? pageController;
@@ -18,6 +19,7 @@ class ReaderState extends ChangeNotifier {
     required this.settingsBox,
   }) {
     settings = settingsBox.get('default') ?? ReaderSettings();
+    currentChapter = book.lastReadChapterIndex ?? 0;
 
     textStyle = TextStyle(
       fontSize: settings.fontSize,
@@ -27,7 +29,7 @@ class ReaderState extends ChangeNotifier {
   }
 
   Future<void> loadPages(double width, double height) async {
-    final String content = book.content;
+    final String content = book.chapters[book.lastReadChapterIndex ?? 0];
     final List<String> newPages = [];
 
     final textPainter = TextPainter(
@@ -39,15 +41,12 @@ class ReaderState extends ChangeNotifier {
     textPainter.layout(maxWidth: width, minWidth: width);
     final lineMetrics = textPainter.computeLineMetrics();
     var nowPageHeight = 0.0;
-    var cumulativeHeight = 0.0;
     final stringBuffer = StringBuffer();
 
     for (var i = 0; i < lineMetrics.length - 1; i++) {
       final metric = lineMetrics[i];
-      cumulativeHeight += metric.height;
-
       final pos = textPainter.getPositionForOffset(
-          Offset(metric.left + metric.width, cumulativeHeight));
+          Offset(metric.left + metric.width, metric.baseline));
       final boundary = textPainter.getLineBoundary(pos);
       final line = content.substring(boundary.start, boundary.end);
 
@@ -129,12 +128,37 @@ class ReaderState extends ChangeNotifier {
   void nextPage() {
     if (currentPage < pages.length - 1) {
       setCurrentPage(currentPage + 1);
+    } else if (currentChapter < book.chapters.length - 1) {
+      setCurrentChapter(currentChapter + 1);
     }
   }
 
   void previousPage() {
     if (currentPage > 0) {
       setCurrentPage(currentPage - 1);
+    } else if (currentChapter > 0) {
+      setCurrentChapter(currentChapter - 1, back: true);
     }
+  }
+
+  void setCurrentChapter(int index, {bool back = false}) {
+    if (index < 0 || index >= book.chapters.length) {
+      return;
+    }
+    currentChapter = index;
+    book.lastReadChapterIndex = index;
+    book.lastReadPosition = 0;
+    if (back) {
+      book.lastReadPosition = book.chapters[currentChapter].length;
+    }
+
+    saveBook();
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    pageController?.dispose();
+    super.dispose();
   }
 }

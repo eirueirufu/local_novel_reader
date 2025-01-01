@@ -7,6 +7,24 @@ import 'package:provider/provider.dart';
 import '../providers/reader_state.dart';
 import '../widgets/text_painter.dart';
 
+class _ReaderState {
+  final TextStyle textStyle;
+  final int currentChapter;
+
+  _ReaderState(this.textStyle, this.currentChapter);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _ReaderState &&
+          runtimeType == other.runtimeType &&
+          textStyle == other.textStyle &&
+          currentChapter == other.currentChapter;
+
+  @override
+  int get hashCode => textStyle.hashCode ^ currentChapter.hashCode;
+}
+
 class ReaderPage extends StatelessWidget {
   final Book book;
   const ReaderPage({super.key, required this.book});
@@ -15,8 +33,9 @@ class ReaderPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.read<ReaderState>();
     return Scaffold(
-      body: Selector<ReaderState, TextStyle>(
-          builder: (context, fontSize, _) {
+      endDrawer: ChapterDrawer(),
+      body: Selector<ReaderState, _ReaderState>(
+          builder: (context, value, _) {
             return LayoutBuilder(
               builder: (context, constraints) {
                 final width = constraints.maxWidth;
@@ -30,7 +49,7 @@ class ReaderPage extends StatelessWidget {
                       int initPage = 0;
                       int pos = 0;
                       for (final page in state.pages) {
-                        if (pos + page.length > book.lastReadPosition) {
+                        if (pos + page.length > (book.lastReadPosition ?? 0)) {
                           break;
                         }
                         pos += page.length;
@@ -131,7 +150,8 @@ class ReaderPage extends StatelessWidget {
               },
             );
           },
-          selector: (_, state) => state.textStyle),
+          selector: (_, state) =>
+              _ReaderState(state.textStyle, state.currentChapter)),
     );
   }
 }
@@ -166,6 +186,10 @@ class TopControlBar extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.menu),
+                  onPressed: () => Scaffold.of(context).openEndDrawer(),
                 ),
                 IconButton(
                   icon: const Icon(Icons.settings),
@@ -359,5 +383,51 @@ class SettingsPanel extends StatelessWidget {
               ),
             ),
         selector: (context, state) => state.settings);
+  }
+}
+
+class ChapterDrawer extends StatelessWidget {
+  const ChapterDrawer({super.key});
+
+  String _formatChapterTitle(String content) {
+    final trimmed = content.trim();
+    if (trimmed.length > 20) {
+      return '${trimmed.substring(0, 20)}...';
+    }
+    return trimmed;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.read<ReaderState>();
+    return Drawer(
+      child: Selector<ReaderState, int?>(
+        selector: (_, state) => state.book.lastReadChapterIndex,
+        builder: (context, currentChapterIndex, _) {
+          return ListView.builder(
+            controller: ScrollController(
+              keepScrollOffset: true,
+            ),
+            itemCount: state.book.chapters.length,
+            itemBuilder: (context, index) {
+              final chapterContent = state.book.chapters[index];
+              return ListTile(
+                title: Text('第${index + 1}章'),
+                subtitle: Text(
+                  _formatChapterTitle(chapterContent),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                selected: index == currentChapterIndex,
+                onTap: () {
+                  state.setCurrentChapter(index);
+                  Navigator.pop(context);
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
   }
 }
