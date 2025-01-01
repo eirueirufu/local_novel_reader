@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:intl/intl.dart';
 import 'dart:io';
 import '../models/book.dart';
 import '../models/reader_settings.dart';
@@ -117,11 +118,10 @@ class _BookshelfPageState extends State<BookshelfPage> {
             itemBuilder: (context, index) {
               final book = books[index];
               var lastRead = '暂未阅读';
-              if (book.lastReadChapterIndex != null &&
-                  book.lastReadPosition != null) {
-                lastRead = book.chapters[book.lastReadChapterIndex!]
-                    .substring(book.lastReadPosition!);
-                lastRead = '上次阅读：$lastRead';
+
+              if (book.lastReadTime != null) {
+                lastRead =
+                    '上次阅读：${DateFormat('yyyy-MM-dd HH:mm').format(book.lastReadTime!)}';
               }
               return Card(
                 margin: const EdgeInsets.only(bottom: 16),

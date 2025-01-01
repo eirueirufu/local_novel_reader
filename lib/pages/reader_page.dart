@@ -87,10 +87,8 @@ class ReaderPage extends StatelessWidget {
                             },
                             onHorizontalDragEnd: (details) {
                               if (details.primaryVelocity! > 0) {
-                                // 向右滑动，上一页
                                 state.previousPage();
                               } else if (details.primaryVelocity! < 0) {
-                                // 向左滑动，下一页
                                 state.nextPage();
                               }
                             },
