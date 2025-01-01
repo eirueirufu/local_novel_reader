@@ -27,23 +27,17 @@ class Book extends HiveObject {
   }
 
   void parseChapters({String? divPattern}) {
-    final chapterPattern = RegExp(
+    var chapterPattern = RegExp(
         r'第[零一二三四五六七八九十百千万\d]+[章节回集卷][\s\S]*?(?=第[零一二三四五六七八九十百千万\d]+[章节回集卷]|$)',
         multiLine: false);
-    if (divPattern == null) {
-      final matches = chapterPattern.allMatches(content);
-      if (matches.isNotEmpty) {
-        chapters = matches.map((m) => m.group(0)!).toList();
-      } else {
-        _parseChaptersByLen();
-      }
+    if (divPattern != null) {
+      chapterPattern = RegExp(divPattern, multiLine: false);
+    }
+    final matches = chapterPattern.allMatches(content);
+    if (matches.length > 1) {
+      chapters = matches.map((m) => m.group(0)!).toList();
     } else {
-      final sections = content.split(divPattern);
-      if (sections.length > 1) {
-        chapters = sections;
-      } else {
-        _parseChaptersByLen();
-      }
+      _parseChaptersByLen();
     }
   }
 

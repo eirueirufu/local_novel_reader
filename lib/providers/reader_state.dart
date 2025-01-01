@@ -156,6 +156,15 @@ class ReaderState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateChapterRegex(String text) {
+    book.parseChapters(divPattern: text);
+    book.lastReadChapterIndex = null;
+    book.lastReadPosition = null;
+
+    saveBook();
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     pageController?.dispose();

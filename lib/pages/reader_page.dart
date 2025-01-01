@@ -10,8 +10,9 @@ import '../widgets/text_painter.dart';
 class _ReaderState {
   final TextStyle textStyle;
   final int currentChapter;
+  final List<String> chapters;
 
-  _ReaderState(this.textStyle, this.currentChapter);
+  _ReaderState(this.textStyle, this.currentChapter, this.chapters);
 
   @override
   bool operator ==(Object other) =>
@@ -19,10 +20,21 @@ class _ReaderState {
       other is _ReaderState &&
           runtimeType == other.runtimeType &&
           textStyle == other.textStyle &&
-          currentChapter == other.currentChapter;
+          currentChapter == other.currentChapter &&
+          _listEquals(chapters, other.chapters);
+
+  bool _listEquals(List<String> a, List<String> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
 
   @override
-  int get hashCode => textStyle.hashCode ^ currentChapter.hashCode;
+  int get hashCode =>
+      Object.hash(textStyle, currentChapter, Object.hashAll(chapters));
 }
 
 class ReaderPage extends StatelessWidget {
@@ -150,8 +162,8 @@ class ReaderPage extends StatelessWidget {
               },
             );
           },
-          selector: (_, state) =>
-              _ReaderState(state.textStyle, state.currentChapter)),
+          selector: (_, state) => _ReaderState(
+              state.textStyle, state.currentChapter, state.book.chapters)),
     );
   }
 }
@@ -351,6 +363,12 @@ class SettingsPanel extends StatelessWidget {
                           const Color(0xFFF8F3E8), // 米色
                           const Color(0xFFE8F3E8), // 淡绿
                           const Color(0xFFE8E8F3), // 淡蓝
+                          const Color(0xFFF5E6E6), // 淡粉
+                          const Color(0xFFE6F5F5), // 淡青
+                          const Color(0xFFF5F5E6), // 淡黄
+                          const Color(0xFFEEEEEE), // 浅灰
+                          const Color(0xFFE0E0E0), // 中灰
+                          const Color(0xFF303030), // 深色模式
                         ]
                             .map((color) => Padding(
                                   padding: const EdgeInsets.all(4),
@@ -379,10 +397,56 @@ class SettingsPanel extends StatelessWidget {
                       ),
                     ),
                   ),
+                  ListTile(
+                    title: const Text('章节分割'),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () => _showRegexDialog(context, state),
+                    ),
+                  ),
                 ],
               ),
             ),
         selector: (context, state) => state.settings);
+  }
+
+  void _showRegexDialog(BuildContext context, ReaderState state) {
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('自定义章节分割'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: '输入正则表达式',
+            helperText: r'例如: 第[a-z]章[\s\S]*?(?=第[a-z]章+|$)',
+            helperMaxLines: 3,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              try {
+                RegExp(controller.text, caseSensitive: false);
+                state.updateChapterRegex(controller.text);
+                Navigator.pop(context);
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('无效的正则表达式')),
+                );
+              }
+            },
+            child: const Text('更新'),
+          ),
+        ],
+      ),
+    ).then((_) => controller.dispose());
   }
 }
 
