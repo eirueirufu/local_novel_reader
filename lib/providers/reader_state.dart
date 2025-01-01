@@ -26,6 +26,8 @@ class ReaderState extends ChangeNotifier {
     }
     currentChapter = book.lastReadChapterIndex!;
 
+    book.updateLastReadTime();
+
     textStyle = TextStyle(
       fontSize: settings.fontSize,
       height: settings.lineHeight,
@@ -156,7 +158,7 @@ class ReaderState extends ChangeNotifier {
     if (back) {
       book.lastReadPosition = book.chapters[currentChapter].length;
     }
-
+    book.updateLastReadTime();
     saveBook();
     notifyListeners();
   }

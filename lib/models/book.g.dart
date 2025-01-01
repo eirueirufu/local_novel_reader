@@ -22,13 +22,14 @@ class BookAdapter extends TypeAdapter<Book> {
     )
       ..lastReadChapterIndex = fields[1] as int?
       ..lastReadPosition = fields[2] as int?
-      ..chapters = (fields[4] as List).cast<String>();
+      ..chapters = (fields[4] as List).cast<String>()
+      ..lastReadTime = fields[5] as DateTime?;
   }
 
   @override
   void write(BinaryWriter writer, Book obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.title)
       ..writeByte(1)
@@ -38,7 +39,9 @@ class BookAdapter extends TypeAdapter<Book> {
       ..writeByte(3)
       ..write(obj.content)
       ..writeByte(4)
-      ..write(obj.chapters);
+      ..write(obj.chapters)
+      ..writeByte(5)
+      ..write(obj.lastReadTime);
   }
 
   @override

@@ -97,7 +97,20 @@ class _BookshelfPageState extends State<BookshelfPage> {
       body: ValueListenableBuilder(
         valueListenable: booksBox.listenable(),
         builder: (context, Box<Book> box, _) {
-          final books = box.values.toList();
+          final books = box.values.toList()
+            ..sort((a, b) {
+              // 如果两本书都没有阅读时间，按添加顺序排序
+              if (a.lastReadTime == null && b.lastReadTime == null) {
+                return 0;
+              }
+              // 没有阅读时间的书排在后面
+              if (a.lastReadTime == null) return 1;
+              if (b.lastReadTime == null) return -1;
+
+              // 按时间倒序排序
+              return b.lastReadTime!.compareTo(a.lastReadTime!);
+            });
+
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: books.length,

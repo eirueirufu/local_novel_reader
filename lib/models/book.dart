@@ -19,11 +19,15 @@ class Book extends HiveObject {
   @HiveField(4)
   List<String> chapters = [];
 
+  @HiveField(5)
+  DateTime? lastReadTime;
+
   Book({
     required this.title,
     required this.content,
   }) {
     parseChapters();
+    lastReadTime = null;
   }
 
   void parseChapters({String? divPattern}) {
@@ -66,5 +70,10 @@ class Book extends HiveObject {
     if (buff.isNotEmpty) {
       chapters.add(buff.toString());
     }
+  }
+
+  void updateLastReadTime() {
+    lastReadTime = DateTime.now();
+    save();
   }
 }
