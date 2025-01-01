@@ -50,7 +50,7 @@ class ReaderState extends ChangeNotifier {
     var nowPageHeight = 0.0;
     final stringBuffer = StringBuffer();
 
-    for (var i = 0; i < lineMetrics.length - 1; i++) {
+    for (var i = 0; i < lineMetrics.length; i++) {
       final metric = lineMetrics[i];
       final pos = textPainter.getPositionForOffset(
           Offset(metric.left + metric.width, metric.baseline));

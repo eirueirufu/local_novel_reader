@@ -38,10 +38,25 @@ class Book extends HiveObject {
     }
     final matches = chapterPattern.allMatches(content);
     if (matches.length > 1) {
-      chapters = matches.map((m) => m.group(0)!).toList();
+      chapters = matches
+          .map((m) => m.group(0)!)
+          .where((chapter) {
+            final trimmed = chapter.trim();
+            return trimmed.isNotEmpty && !_isWhitespaceOnly(trimmed);
+          })
+          .map((chapter) => chapter.trim())
+          .toList();
+
+      if (chapters.isEmpty) {
+        _parseChaptersByLen();
+      }
     } else {
       _parseChaptersByLen();
     }
+  }
+
+  bool _isWhitespaceOnly(String text) {
+    return text.replaceAll(RegExp(r'\s'), '').isEmpty;
   }
 
   void _parseChaptersByLen() {
@@ -51,6 +66,8 @@ class Book extends HiveObject {
     final sections = content.split(pattern);
     final buff = StringBuffer();
     for (final sec in sections) {
+      if (_isWhitespaceOnly(sec)) continue;
+
       buff.writeln(sec);
       if (buff.length >= endLen && buff.length < maxLen) {
         chapters.add(buff.toString());
