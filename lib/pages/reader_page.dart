@@ -421,7 +421,7 @@ class SettingsPanel extends StatelessWidget {
           controller: controller,
           decoration: const InputDecoration(
             hintText: '输入正则表达式',
-            helperText: r'例如: 第[a-z]章[\s\S]*?(?=第[a-z]章+|$)',
+            helperText: r'例如: 第[a-z]章[\s\S]+?(?=第[a-z]章+|$)',
             helperMaxLines: 3,
           ),
         ),
@@ -476,8 +476,7 @@ class ChapterDrawer extends StatelessWidget {
             itemBuilder: (context, index) {
               final chapterContent = state.book.chapters[index];
               return ListTile(
-                title: Text('第${index + 1}章'),
-                subtitle: Text(
+                title: Text(
                   _formatChapterTitle(chapterContent),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

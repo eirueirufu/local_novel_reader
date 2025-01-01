@@ -28,10 +28,9 @@ class Book extends HiveObject {
 
   void parseChapters({String? divPattern}) {
     var chapterPattern = RegExp(
-        r'第[零一二三四五六七八九十百千万\d]+[章节回集卷][\s\S]*?(?=第[零一二三四五六七八九十百千万\d]+[章节回集卷]|$)',
-        multiLine: false);
+        r'(第[零一二三四五六七八九十百千万\d]+[章节回集卷])?[\s\S]*?(?=第[零一二三四五六七八九十百千万\d]+[章节回集卷]|$)');
     if (divPattern != null) {
-      chapterPattern = RegExp(divPattern, multiLine: false);
+      chapterPattern = RegExp(divPattern);
     }
     final matches = chapterPattern.allMatches(content);
     if (matches.length > 1) {
