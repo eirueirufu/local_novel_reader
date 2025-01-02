@@ -179,12 +179,6 @@ class ReaderState extends ChangeNotifier {
     currentChapter = index;
     book.lastReadChapterIndex = index;
     book.lastReadPosition = 0;
-    if (back) {
-      final cptLen = book.chapters[currentChapter].length;
-      if (cptLen > 0) {
-        book.lastReadPosition = cptLen - 1;
-      }
-    }
     book.updateLastReadTime();
     saveBook();
     notifyListeners();

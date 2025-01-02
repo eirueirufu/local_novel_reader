@@ -57,16 +57,28 @@ class ReaderPage extends StatelessWidget {
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.done) {
                       final state = context.read<ReaderState>();
-
                       int initPage = 0;
-                      int pos = 0;
-                      for (final page in state.pages) {
-                        if (pos + page.length > (book.lastReadPosition ?? 0)) {
-                          break;
+
+                      if (state.back) {
+                        int len = 0;
+                        for (final page in state.pages) {
+                          len += page.length;
+                          initPage++;
                         }
-                        pos += page.length;
-                        initPage++;
+                        state.book.lastReadPosition = len;
+                        state.saveBook();
+                      } else {
+                        int pos = 0;
+                        for (final page in state.pages) {
+                          if (pos + page.length >
+                              (book.lastReadPosition ?? 0)) {
+                            break;
+                          }
+                          pos += page.length;
+                          initPage++;
+                        }
                       }
+
                       state.currentPage = initPage;
                       state.pageController = PageController(
                         initialPage: initPage,
