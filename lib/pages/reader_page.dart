@@ -153,7 +153,12 @@ class ReaderPage extends StatelessWidget {
                         ],
                       );
                     } else {
-                      return const Center(child: CircularProgressIndicator());
+                      return CustomPaint(
+                        size: Size(width, height),
+                        painter: TextPagePainter(
+                            content: state.textPlaceholder,
+                            textStyle: state.textStyle),
+                      );
                     }
                   },
                 );

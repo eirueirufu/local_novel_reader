@@ -13,6 +13,7 @@ class ReaderState extends ChangeNotifier {
   int currentPage = 0;
   bool showControls = false;
   PageController? pageController;
+  bool back = false;
 
   ReaderState({
     required this.book,
@@ -33,6 +34,28 @@ class ReaderState extends ChangeNotifier {
       height: settings.lineHeight,
       color: Colors.black87,
     );
+  }
+
+  String get textPlaceholder {
+    int assumeLen = 5000;
+    int totalLen = 0;
+    for (final page in pages) {
+      totalLen += page.length;
+    }
+    if (pages.isNotEmpty) {
+      assumeLen = pages[0].length;
+    }
+
+    final nowChapter = book.chapters[book.lastReadChapterIndex!];
+    final cptLen = nowChapter.length;
+
+    if (assumeLen > cptLen) {
+      assumeLen = cptLen;
+    }
+    if (back) {
+      return nowChapter.substring(nowChapter.length - totalLen % assumeLen);
+    }
+    return nowChapter.substring(0, assumeLen);
   }
 
   Future<void> loadPages(double width, double height) async {
@@ -149,6 +172,7 @@ class ReaderState extends ChangeNotifier {
   }
 
   void setCurrentChapter(int index, {bool back = false}) {
+    this.back = back;
     if (index < 0 || index >= book.chapters.length) {
       return;
     }
@@ -156,7 +180,10 @@ class ReaderState extends ChangeNotifier {
     book.lastReadChapterIndex = index;
     book.lastReadPosition = 0;
     if (back) {
-      book.lastReadPosition = book.chapters[currentChapter].length;
+      final cptLen = book.chapters[currentChapter].length;
+      if (cptLen > 0) {
+        book.lastReadPosition = cptLen - 1;
+      }
     }
     book.updateLastReadTime();
     saveBook();
