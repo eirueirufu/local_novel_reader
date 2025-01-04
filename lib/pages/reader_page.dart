@@ -69,8 +69,10 @@ class ReaderPage extends StatelessWidget {
 
                                 if (state.back) {
                                   int len = 0;
-                                  for (final page in state.pages) {
-                                    len += page.length;
+                                  for (var i = 0;
+                                      i < state.pages.length - 1;
+                                      i++) {
+                                    len += state.pages[i].length;
                                   }
                                   initPage = state.pages.length - 1;
                                   state.book.lastReadPosition = len;
@@ -155,6 +157,17 @@ class ReaderPage extends StatelessWidget {
                                         },
                                       ),
                                     ),
+                                    Selector<ReaderState, bool>(
+                                      builder: (context, show, _) {
+                                        if (show) {
+                                          return const BottomControlBar();
+                                        } else {
+                                          return Container();
+                                        }
+                                      },
+                                      selector: (_, state) =>
+                                          state.showControls,
+                                    ),
                                   ],
                                 );
                               } else {
@@ -177,16 +190,6 @@ class ReaderPage extends StatelessWidget {
                     builder: (context, show, _) {
                       if (show) {
                         return const TopControlBar();
-                      } else {
-                        return Container();
-                      }
-                    },
-                    selector: (_, state) => state.showControls,
-                  ),
-                  Selector<ReaderState, bool>(
-                    builder: (context, show, _) {
-                      if (show) {
-                        return const BottomControlBar();
                       } else {
                         return Container();
                       }
@@ -260,14 +263,31 @@ class TopControlBar extends StatelessWidget {
   }
 }
 
+class _ButtomBarState {
+  final int currentPage;
+  final int pageLen;
+
+  _ButtomBarState({required this.currentPage, required this.pageLen});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _ButtomBarState &&
+          runtimeType == other.runtimeType &&
+          currentPage == other.currentPage &&
+          pageLen == other.pageLen;
+
+  @override
+  int get hashCode => Object.hash(currentPage, pageLen);
+}
+
 class BottomControlBar extends StatelessWidget {
   const BottomControlBar({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final state = context.read<ReaderState>();
-    return Selector<ReaderState, int>(
-        builder: (context, currentPage, _) => Positioned(
+    return Selector<ReaderState, _ButtomBarState>(
+        builder: (context, state, _) => Positioned(
               bottom: 0,
               left: 0,
               right: 0,
@@ -285,7 +305,7 @@ class BottomControlBar extends StatelessWidget {
                     GestureDetector(
                       onTap: () => _showPagePickerDialog(context),
                       child: Text(
-                        '${state.currentPage + 1}/${state.pages.length}',
+                        '${state.currentPage + 1}/${state.pageLen}',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -297,7 +317,8 @@ class BottomControlBar extends StatelessWidget {
                 ),
               ),
             ),
-        selector: (context, state) => state.currentPage);
+        selector: (context, state) => _ButtomBarState(
+            currentPage: state.currentPage, pageLen: state.pages.length));
   }
 
   void _showPagePickerDialog(BuildContext context) {
