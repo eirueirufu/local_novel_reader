@@ -71,8 +71,8 @@ class ReaderPage extends StatelessWidget {
                                   int len = 0;
                                   for (final page in state.pages) {
                                     len += page.length;
-                                    initPage++;
                                   }
+                                  initPage = state.pages.length - 1;
                                   state.book.lastReadPosition = len;
                                   state.saveBook();
                                 } else {
