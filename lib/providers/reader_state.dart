@@ -14,6 +14,7 @@ class ReaderState extends ChangeNotifier {
   bool showControls = false;
   PageController? pageController;
   bool back = false;
+  final textEditingController = TextEditingController();
 
   ReaderState({
     required this.book,
@@ -196,6 +197,7 @@ class ReaderState extends ChangeNotifier {
   @override
   void dispose() {
     pageController?.dispose();
+    textEditingController.dispose();
     super.dispose();
   }
 }

@@ -51,152 +51,155 @@ class ReaderPage extends StatelessWidget {
           builder: (context, color, _) {
             return Container(
               color: color,
-              child: Stack(
-                children: [
-                  Selector<ReaderState, _ReaderState>(
-                    builder: (context, value, _) {
-                      return LayoutBuilder(
-                        builder: (context, constraints) {
-                          final width = constraints.maxWidth;
-                          final height = constraints.maxHeight;
-                          return FutureBuilder(
-                            future: state.loadPages(width, height),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.done) {
-                                final state = context.read<ReaderState>();
-                                int initPage = 0;
+              child: SafeArea(
+                child: Stack(
+                  children: [
+                    Selector<ReaderState, _ReaderState>(
+                      builder: (context, value, _) {
+                        return LayoutBuilder(
+                          builder: (context, constraints) {
+                            final width = constraints.maxWidth;
+                            final height = constraints.maxHeight;
+                            return FutureBuilder(
+                              future: state.loadPages(width, height),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.done) {
+                                  final state = context.read<ReaderState>();
+                                  int initPage = 0;
 
-                                if (state.back) {
-                                  int len = 0;
-                                  for (var i = 0;
-                                      i < state.pages.length - 1;
-                                      i++) {
-                                    len += state.pages[i].length;
-                                  }
-                                  initPage = state.pages.length - 1;
-                                  state.book.lastReadPosition = len;
-                                  state.saveBook();
-                                } else {
-                                  int pos = 0;
-                                  for (final page in state.pages) {
-                                    if (pos + page.length >
-                                        (book.lastReadPosition ?? 0)) {
-                                      break;
+                                  if (state.back) {
+                                    int len = 0;
+                                    for (var i = 0;
+                                        i < state.pages.length - 1;
+                                        i++) {
+                                      len += state.pages[i].length;
                                     }
-                                    pos += page.length;
-                                    initPage++;
+                                    initPage = state.pages.length - 1;
+                                    state.book.lastReadPosition = len;
+                                    state.saveBook();
+                                  } else {
+                                    int pos = 0;
+                                    for (final page in state.pages) {
+                                      if (pos + page.length >
+                                          (book.lastReadPosition ?? 0)) {
+                                        break;
+                                      }
+                                      pos += page.length;
+                                      initPage++;
+                                    }
                                   }
-                                }
 
-                                state.currentPage = initPage;
-                                state.pageController = PageController(
-                                  initialPage: initPage,
-                                );
-                                return Stack(
-                                  children: [
-                                    GestureDetector(
-                                      onTapUp: (details) {
-                                        final tapPosition =
-                                            details.localPosition.dx;
+                                  state.currentPage = initPage;
+                                  state.pageController = PageController(
+                                    initialPage: initPage,
+                                  );
+                                  return Stack(
+                                    children: [
+                                      GestureDetector(
+                                        onTapUp: (details) {
+                                          final tapPosition =
+                                              details.localPosition.dx;
 
-                                        if (tapPosition < width / 3) {
-                                          state.previousPage();
-                                        } else if (tapPosition >
-                                            width * 2 / 3) {
-                                          state.nextPage();
-                                        } else {
-                                          state.toggleControls();
-                                        }
-                                      },
-                                      onHorizontalDragEnd: (details) {
-                                        if (details.primaryVelocity! > 0) {
-                                          state.previousPage();
-                                        } else if (details.primaryVelocity! <
-                                            0) {
-                                          state.nextPage();
-                                        }
-                                      },
-                                      child: PageView.builder(
-                                        physics:
-                                            const NeverScrollableScrollPhysics(),
-                                        controller: state.pageController,
-                                        itemCount: state.pages.length,
-                                        itemBuilder: (context, index) {
-                                          return Selector<ReaderState, Color>(
-                                            builder: (context, color, _) {
-                                              return Stack(
-                                                children: [
-                                                  CustomPaint(
-                                                    size: Size(width, height),
-                                                    painter: TextPagePainter(
-                                                      content:
-                                                          state.pages[index],
-                                                      textStyle:
-                                                          state.textStyle,
-                                                    ),
-                                                  ),
-                                                  Positioned(
-                                                    left: 0,
-                                                    right: 0,
-                                                    bottom: 0,
-                                                    child: Text(
-                                                      '${index + 1}/${state.pages.length}',
-                                                      style: const TextStyle(
-                                                        color: Colors.grey,
-                                                        fontSize: 14,
+                                          if (tapPosition < width / 3) {
+                                            state.previousPage();
+                                          } else if (tapPosition >
+                                              width * 2 / 3) {
+                                            state.nextPage();
+                                          } else {
+                                            state.toggleControls();
+                                          }
+                                        },
+                                        onHorizontalDragEnd: (details) {
+                                          if (details.primaryVelocity! > 0) {
+                                            state.previousPage();
+                                          } else if (details.primaryVelocity! <
+                                              0) {
+                                            state.nextPage();
+                                          }
+                                        },
+                                        child: PageView.builder(
+                                          physics:
+                                              const NeverScrollableScrollPhysics(),
+                                          controller: state.pageController,
+                                          itemCount: state.pages.length,
+                                          itemBuilder: (context, index) {
+                                            return Selector<ReaderState, Color>(
+                                              builder: (context, color, _) {
+                                                return Stack(
+                                                  children: [
+                                                    CustomPaint(
+                                                      size: Size(width, height),
+                                                      painter: TextPagePainter(
+                                                        content:
+                                                            state.pages[index],
+                                                        textStyle:
+                                                            state.textStyle,
                                                       ),
                                                     ),
-                                                  ),
-                                                ],
-                                              );
-                                            },
-                                            selector: (_, state) => state
-                                                .settings.backgroundColorValue,
-                                          );
-                                        },
+                                                    Positioned(
+                                                      left: 0,
+                                                      right: 0,
+                                                      bottom: 0,
+                                                      child: Text(
+                                                        '${index + 1}/${state.pages.length}',
+                                                        style: const TextStyle(
+                                                          color: Colors.grey,
+                                                          fontSize: 14,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
+                                              selector: (_, state) => state
+                                                  .settings
+                                                  .backgroundColorValue,
+                                            );
+                                          },
+                                        ),
                                       ),
-                                    ),
-                                    Selector<ReaderState, bool>(
-                                      builder: (context, show, _) {
-                                        if (show) {
-                                          return const BottomControlBar();
-                                        } else {
-                                          return Container();
-                                        }
-                                      },
-                                      selector: (_, state) =>
-                                          state.showControls,
-                                    ),
-                                  ],
-                                );
-                              } else {
-                                return CustomPaint(
-                                  size: Size(width, height),
-                                  painter: TextPagePainter(
-                                      content: state.textPlaceholder,
-                                      textStyle: state.textStyle),
-                                );
-                              }
-                            },
-                          );
-                        },
-                      );
-                    },
-                    selector: (_, state) => _ReaderState(state.textStyle,
-                        state.currentChapter, state.book.chapters),
-                  ),
-                  Selector<ReaderState, bool>(
-                    builder: (context, show, _) {
-                      if (show) {
-                        return const TopControlBar();
-                      } else {
-                        return Container();
-                      }
-                    },
-                    selector: (_, state) => state.showControls,
-                  ),
-                ],
+                                      Selector<ReaderState, bool>(
+                                        builder: (context, show, _) {
+                                          if (show) {
+                                            return const BottomControlBar();
+                                          } else {
+                                            return Container();
+                                          }
+                                        },
+                                        selector: (_, state) =>
+                                            state.showControls,
+                                      ),
+                                    ],
+                                  );
+                                } else {
+                                  return CustomPaint(
+                                    size: Size(width, height),
+                                    painter: TextPagePainter(
+                                        content: state.textPlaceholder,
+                                        textStyle: state.textStyle),
+                                  );
+                                }
+                              },
+                            );
+                          },
+                        );
+                      },
+                      selector: (_, state) => _ReaderState(state.textStyle,
+                          state.currentChapter, state.book.chapters),
+                    ),
+                    Selector<ReaderState, bool>(
+                      builder: (context, show, _) {
+                        if (show) {
+                          return const TopControlBar();
+                        } else {
+                          return Container();
+                        }
+                      },
+                      selector: (_, state) => state.showControls,
+                    ),
+                  ],
+                ),
               ),
             );
           }),
@@ -323,10 +326,7 @@ class BottomControlBar extends StatelessWidget {
 
   void _showPagePickerDialog(BuildContext context) {
     final state = context.read<ReaderState>();
-    final controller = TextEditingController(
-      text: (state.currentPage + 1).toString(),
-    );
-
+    state.textEditingController.text = (state.currentPage + 1).toString();
     showDialog(
       context: context,
       builder: (dialogContext) => ChangeNotifierProvider.value(
@@ -334,7 +334,7 @@ class BottomControlBar extends StatelessWidget {
         child: AlertDialog(
           title: const Text('跳转到指定页'),
           content: TextField(
-            controller: controller,
+            controller: state.textEditingController,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
               hintText: '请输入页码 (1-${state.pages.length})',
@@ -349,7 +349,8 @@ class BottomControlBar extends StatelessWidget {
             ),
             TextButton(
               onPressed: () {
-                final pageNumber = int.tryParse(controller.text);
+                final pageNumber =
+                    int.tryParse(state.textEditingController.text);
                 if (pageNumber != null &&
                     pageNumber >= 1 &&
                     pageNumber <= state.pages.length) {
@@ -362,7 +363,7 @@ class BottomControlBar extends StatelessWidget {
           ],
         ),
       ),
-    ).then((_) => controller.dispose());
+    );
   }
 }
 
