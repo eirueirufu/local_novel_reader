@@ -45,6 +45,7 @@ class ReaderPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.read<ReaderState>();
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       endDrawer: ChapterDrawer(),
       body: Selector<ReaderState, Color>(
           selector: (_, state) => state.settings.backgroundColorValue,

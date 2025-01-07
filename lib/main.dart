@@ -14,10 +14,6 @@ void main() async {
   Hive.registerAdapter(BookAdapter());
   Hive.registerAdapter(ReaderSettingsAdapter());
 
-  // 清理所有数据
-  await Hive.deleteBoxFromDisk('books');
-  await Hive.deleteBoxFromDisk('settings');
-
   // 打开盒子
   await Hive.openBox<Book>('books');
   await Hive.openBox<ReaderSettings>('settings');
