@@ -27,7 +27,14 @@ class _TextPagesState extends State<TextPages> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) => FutureBuilder(
-        future: loadPages(constraints),
+        future: loadPages(
+          Size(
+            constraints.maxWidth - 16.0,
+            constraints.maxHeight -
+                16.0 -
+                (TextTheme.of(context).labelSmall?.fontSize ?? 0.0),
+          ),
+        ),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
             pages = snapshot.data!;
@@ -61,9 +68,23 @@ class _TextPagesState extends State<TextPages> {
                     );
                   }
                 },
-                child: Text(
-                  pages[index],
-                  style: widget.textStyle,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          pages[index],
+                          style: widget.textStyle,
+                        ),
+                      ),
+                      Text(
+                        '${index + 1}/${pages.length}',
+                        style: TextTheme.of(context).labelSmall,
+                      )
+                    ],
+                  ),
                 ),
               ),
               itemCount: pages.length,
@@ -92,11 +113,10 @@ class _TextPagesState extends State<TextPages> {
     super.dispose();
   }
 
-  Future<List<String>> loadPages(BoxConstraints constraints) async {
+  Future<List<String>> loadPages(Size size) async {
     final text = widget.text;
     final textStyle = widget.textStyle;
     final List<String> loadPages = [];
-    final size = Size(constraints.maxWidth, constraints.maxHeight);
 
     final textPainter = TextPainter(
       textAlign: TextAlign.left,
