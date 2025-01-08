@@ -4,7 +4,9 @@ class TextPages extends StatefulWidget {
   final String text;
   final TextStyle textStyle;
   final ValueChanged<int>? onOffsetChange;
+  final VoidCallback? onChangeSetting;
   final int? lastIndex;
+  final PageController? pageController;
 
   const TextPages({
     super.key,
@@ -12,6 +14,8 @@ class TextPages extends StatefulWidget {
     required this.textStyle,
     this.lastIndex,
     this.onOffsetChange,
+    this.onChangeSetting,
+    this.pageController,
   }) : assert(text.length < 20000);
 
   @override
@@ -21,7 +25,13 @@ class TextPages extends StatefulWidget {
 class _TextPagesState extends State<TextPages> {
   List<String> pages = [];
   int currentPage = 0;
-  PageController? pageController;
+  late PageController pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    pageController = widget.pageController ?? PageController();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +58,6 @@ class _TextPagesState extends State<TextPages> {
                 currentPage++;
               }
             }
-            pageController = PageController(initialPage: currentPage);
 
             return PageView.builder(
               physics: PageScrollPhysics(),
@@ -57,21 +66,23 @@ class _TextPagesState extends State<TextPages> {
                 onTapUp: (details) {
                   final tapPosition = details.localPosition.dx;
                   if (tapPosition < constraints.maxWidth / 3) {
-                    pageController?.previousPage(
+                    pageController.previousPage(
+                      duration: Duration(milliseconds: 200),
+                      curve: Curves.linear,
+                    );
+                  } else if (tapPosition > constraints.maxWidth / 3 * 2) {
+                    pageController.nextPage(
                       duration: Duration(milliseconds: 200),
                       curve: Curves.linear,
                     );
                   } else {
-                    pageController?.nextPage(
-                      duration: Duration(milliseconds: 200),
-                      curve: Curves.linear,
-                    );
+                    widget.onChangeSetting?.call();
                   }
                 },
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Expanded(
                         child: Text(
@@ -109,7 +120,9 @@ class _TextPagesState extends State<TextPages> {
 
   @override
   void dispose() {
-    pageController?.dispose();
+    if (widget.pageController == null) {
+      pageController.dispose();
+    }
     super.dispose();
   }
 
