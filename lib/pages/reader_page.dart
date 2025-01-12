@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:local_novel_reader/models/book.dart';
 import 'package:local_novel_reader/models/reader_settings.dart';
-import 'package:local_novel_reader/pages/setting_panel.dart';
+import 'package:local_novel_reader/pages/reader_list.dart';
 import 'package:local_novel_reader/utils/text.dart';
 import 'package:local_novel_reader/widgets/text_page.dart';
 
@@ -20,7 +20,7 @@ class _ReaderPageState extends State<ReaderPage>
   late Box<ReaderSettings> box;
   late List<String> pages;
   late AnimationController _controller;
-  late PageController pageController;
+  PageController? pageController;
   ReaderSettings? setting;
   int nowPage = 0;
 
@@ -28,17 +28,14 @@ class _ReaderPageState extends State<ReaderPage>
   void initState() {
     super.initState();
     box = Hive.box<ReaderSettings>('settings');
-    _controller =
-        AnimationController(vsync: this, duration: Duration(milliseconds: 200));
-    pageController = PageController(
-      keepPage: true,
-    );
+    _controller = AnimationController(vsync: this, duration: Durations.medium1);
   }
 
   @override
   void dispose() {
+    widget.book.save();
     _controller.dispose();
-    pageController.dispose();
+    pageController?.dispose();
     super.dispose();
   }
 
@@ -65,6 +62,21 @@ class _ReaderPageState extends State<ReaderPage>
           builder: (context, snapshpt) {
             if (snapshpt.hasData) {
               pages = snapshpt.data!;
+
+              nowPage = 0;
+              int pos = 0;
+              for (final page in pages) {
+                if (pos + page.length > (widget.book.lastReadPosition ?? 0)) {
+                  break;
+                }
+                pos += page.length;
+                nowPage++;
+              }
+              pageController ??= PageController(
+                keepPage: true,
+                initialPage: nowPage,
+              );
+
               return GestureDetector(
                 onTap: () {
                   Navigator.push(
@@ -73,13 +85,23 @@ class _ReaderPageState extends State<ReaderPage>
                       pageBuilder: (BuildContext context,
                           Animation<double> animation,
                           Animation<double> secondaryAnimation) {
-                        return SettingPanel(
+                        return ReaderList(
+                          book: widget.book,
                           pages: pages,
                           textStyle: getTextStyle(context),
                           parentConstraints: constraints,
                           initPage: nowPage,
                           onPageChange: (index) {
-                            pageController.jumpToPage(index);
+                            pageController?.jumpToPage(index);
+                            int pos = 0;
+                            for (var i = 0; i < index; i++) {
+                              pos += pages[i].length;
+                            }
+                            widget.book.lastReadPosition = pos;
+                          },
+                          onChapterChange: (index) {
+                            widget.book.lastReadChapterIndex = index;
+                            widget.book.save();
                           },
                         );
                       },
@@ -89,10 +111,7 @@ class _ReaderPageState extends State<ReaderPage>
                 child: TextPage(
                   pageController: pageController,
                   pages: pages,
-                  textStyle: TextTheme.of(context).bodyMedium!.copyWith(
-                        fontSize: setting?.fontSize,
-                        height: setting?.lineHeight,
-                      ),
+                  textStyle: getTextStyle(context),
                   onPageChange: (value) {
                     nowPage = value;
                   },
@@ -606,50 +625,5 @@ class _ReaderPageState extends State<ReaderPage>
 //         ],
 //       ),
 //     ).then((_) => controller.dispose());
-//   }
-// }
-
-// class ChapterDrawer extends StatelessWidget {
-//   const ChapterDrawer({super.key});
-
-//   String _formatChapterTitle(String content) {
-//     final trimmed = content.trim();
-//     if (trimmed.length > 20) {
-//       return '${trimmed.substring(0, 20)}...';
-//     }
-//     return trimmed;
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final state = context.read<ReaderState>();
-//     return Drawer(
-//       child: Selector<ReaderState, int?>(
-//         selector: (_, state) => state.book.lastReadChapterIndex,
-//         builder: (context, currentChapterIndex, _) {
-//           return ListView.builder(
-//             controller: ScrollController(
-//               keepScrollOffset: true,
-//             ),
-//             itemCount: state.book.chapters.length,
-//             itemBuilder: (context, index) {
-//               final chapterContent = state.book.chapters[index];
-//               return ListTile(
-//                 title: Text(
-//                   _formatChapterTitle(chapterContent),
-//                   maxLines: 1,
-//                   overflow: TextOverflow.ellipsis,
-//                 ),
-//                 selected: index == currentChapterIndex,
-//                 onTap: () {
-//                   state.setCurrentChapter(index);
-//                   Navigator.pop(context);
-//                 },
-//               );
-//             },
-//           );
-//         },
-//       ),
-//     );
 //   }
 // }
