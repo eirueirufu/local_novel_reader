@@ -5,7 +5,7 @@ import '../models/reader_settings.dart';
 
 class ReaderState extends ChangeNotifier {
   final Book book;
-  final Box<ReaderSettings> settingsBox;
+  late Box<ReaderSettings> settingsBox;
   late ReaderSettings settings;
   late TextStyle textStyle;
   List<String> pages = [];
@@ -18,7 +18,6 @@ class ReaderState extends ChangeNotifier {
 
   ReaderState({
     required this.book,
-    required this.settingsBox,
   }) {
     settings = settingsBox.get('default') ?? ReaderSettings();
     if (book.lastReadChapterIndex == null || book.lastReadPosition == null) {

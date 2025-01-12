@@ -1,35 +1,137 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../models/book.dart';
-import '../providers/bookshelf_state.dart';
-import '../providers/reader_state.dart';
-import 'reader_page.dart';
+import 'package:local_novel_reader/models/book.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:local_novel_reader/models/reader_settings.dart';
+import 'package:local_novel_reader/pages/reader_page.dart';
+import 'package:local_novel_reader/providers/reader_state.dart';
 import 'package:provider/provider.dart';
 
-class BookshelfPage extends StatelessWidget {
-  const BookshelfPage({super.key});
+class BookShelfPage extends StatefulWidget {
+  const BookShelfPage({super.key});
+
+  @override
+  State<BookShelfPage> createState() => _BookShelfPageState();
+}
+
+class _BookShelfPageState extends State<BookShelfPage>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Box<Book> box;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this);
+    box = Hive.box<Book>('books');
+  }
+
+  List<Book> get books {
+    final bookList = box.values.toList()
+      ..sort((a, b) {
+        if (a.lastReadTime == null && b.lastReadTime == null) {
+          return 0;
+        }
+        if (a.lastReadTime == null) return 1;
+        if (b.lastReadTime == null) return -1;
+        return b.lastReadTime!.compareTo(a.lastReadTime!);
+      });
+    return bookList;
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('我的书架'),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => importBook(),
+        child: const Icon(Icons.add),
+      ),
+      body: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: books.length,
+        itemBuilder: (context, index) {
+          final book = books[index];
+          var lastRead = '暂未阅读';
+
+          if (book.lastReadTime != null) {
+            lastRead =
+                '上次阅读：${DateFormat('yyyy-MM-dd HH:mm').format(book.lastReadTime!)}';
+          }
+
+          return ListTile(
+            onTap: () => _openBook(context, book),
+            onLongPress: () => _deleteBook(context, book),
+            leading: Icon(
+              Icons.book,
+              color: Theme.of(context).primaryColor,
+            ),
+            title: Text(
+              book.title,
+              style: TextTheme.of(context).bodyLarge,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            subtitle: Text(
+              lastRead,
+              style: TextTheme.of(context).labelMedium,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            trailing: const Icon(Icons.chevron_right),
+          );
+        },
+        separatorBuilder: (BuildContext context, int index) {
+          return Divider();
+        },
+      ),
+    );
+  }
 
   void _openBook(BuildContext context, Book book) {
-    final bookshelfState = context.read<BookshelfState>();
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ChangeNotifierProvider(
-          create: (_) => ReaderState(
-            book: book,
-            settingsBox: bookshelfState.settingsBox,
-          ),
-          child: ReaderPage(book: book),
+        builder: (context) => ValueListenableBuilder(
+          valueListenable: Hive.box<ReaderSettings>('settings').listenable(),
+          builder: (context, box, _) => ReaderPage(book: book),
         ),
       ),
-    ).then((_) {
-      // 当阅读页面返回时，刷新书架
-      bookshelfState.refresh();
-    });
+    );
+  }
+
+  Future<void> importBook() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['txt'],
+    );
+
+    if (result != null) {
+      File file = File(result.files.single.path!);
+      String fileName = result.files.single.name;
+      String content = await file.readAsString();
+
+      final book = Book(
+        title: fileName,
+        content: content,
+      );
+
+      await box.add(book);
+    }
   }
 
   Future<void> _deleteBook(BuildContext context, Book book) async {
-    final state = context.read<BookshelfState>();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -52,65 +154,7 @@ class BookshelfPage extends StatelessWidget {
     );
 
     if (confirmed == true) {
-      await state.deleteBook(book);
+      await book.delete();
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('我的书架'),
-      ),
-      body: Consumer<BookshelfState>(
-        builder: (context, state, _) {
-          final books = state.books;
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: books.length,
-            itemBuilder: (context, index) {
-              final book = books[index];
-              var lastRead = '暂未阅读';
-
-              if (book.lastReadTime != null) {
-                lastRead =
-                    '上次阅读：${DateFormat('yyyy-MM-dd HH:mm').format(book.lastReadTime!)}';
-              }
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 16),
-                child: ListTile(
-                  onTap: () => _openBook(context, book),
-                  onLongPress: () => _deleteBook(context, book),
-                  leading: Icon(
-                    Icons.book,
-                    size: 40,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                  title: Text(
-                    book.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  subtitle: Text(
-                    lastRead,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                ),
-              );
-            },
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.read<BookshelfState>().importBook(),
-        child: const Icon(Icons.add),
-      ),
-    );
   }
 }
