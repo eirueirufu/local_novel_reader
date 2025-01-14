@@ -7,8 +7,6 @@ import 'package:local_novel_reader/models/book.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:local_novel_reader/models/reader_settings.dart';
 import 'package:local_novel_reader/pages/reader_page.dart';
-import 'package:local_novel_reader/providers/reader_state.dart';
-import 'package:provider/provider.dart';
 
 class BookShelfPage extends StatefulWidget {
   const BookShelfPage({super.key});
@@ -103,9 +101,14 @@ class _BookShelfPageState extends State<BookShelfPage>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ValueListenableBuilder(
-          valueListenable: Hive.box<ReaderSettings>('settings').listenable(),
-          builder: (context, box, _) => ReaderPage(book: book),
+        builder: (context) => ListenableBuilder(
+          listenable: Listenable.merge(
+            [
+              Hive.box<Book>('books').listenable(),
+              Hive.box<ReaderSettings>('settings').listenable(),
+            ],
+          ),
+          builder: (context, _) => ReaderPage(book: book),
         ),
       ),
     );

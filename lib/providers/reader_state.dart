@@ -146,8 +146,8 @@ class ReaderState extends ChangeNotifier {
 
   void updateChapterRegex(String text) {
     book.parseChapters(divPattern: text);
-    book.lastReadChapterIndex = null;
-    book.lastReadPosition = null;
+    // book.lastReadChapterIndex = null;
+    // book.lastReadPosition = null;
 
     saveBook();
     notifyListeners();

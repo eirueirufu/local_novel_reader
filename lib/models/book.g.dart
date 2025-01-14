@@ -20,8 +20,8 @@ class BookAdapter extends TypeAdapter<Book> {
       title: fields[0] as String,
       content: fields[3] as String,
     )
-      ..lastReadChapterIndex = fields[1] as int?
-      ..lastReadPosition = fields[2] as int?
+      ..lastReadChapterIndex = fields[1] as int
+      ..lastReadPosition = fields[2] as int
       ..chapters = (fields[4] as List).cast<String>()
       ..lastReadTime = fields[5] as DateTime?;
   }

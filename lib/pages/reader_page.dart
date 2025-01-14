@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:local_novel_reader/models/book.dart';
 import 'package:local_novel_reader/models/reader_settings.dart';
-import 'package:local_novel_reader/pages/reader_list.dart';
 import 'package:local_novel_reader/utils/text.dart';
 import 'package:local_novel_reader/widgets/text_page.dart';
 
@@ -17,23 +16,31 @@ class ReaderPage extends StatefulWidget {
 
 class _ReaderPageState extends State<ReaderPage>
     with SingleTickerProviderStateMixin {
-  late Box<ReaderSettings> box;
+  late Box<Book> bookBox;
+  late Box<ReaderSettings> settingsBox;
+  late Book book;
   late List<String> pages;
   late AnimationController _controller;
   PageController? pageController;
   ReaderSettings? setting;
+  ValueNotifier<bool> showSetting = ValueNotifier(false);
+  ValueNotifier<double> sliderVal = ValueNotifier(0);
   int nowPage = 0;
 
   @override
   void initState() {
     super.initState();
-    box = Hive.box<ReaderSettings>('settings');
-    _controller = AnimationController(vsync: this, duration: Durations.medium1);
+    settingsBox = Hive.box<ReaderSettings>('settings');
+    bookBox = Hive.box<Book>('books');
+
+    _controller =
+        AnimationController(vsync: this, duration: kThemeChangeDuration);
+    pageController = PageController();
   }
 
   @override
   void dispose() {
-    widget.book.save();
+    book.updateLastReadTime();
     _controller.dispose();
     pageController?.dispose();
     super.dispose();
@@ -48,83 +55,281 @@ class _ReaderPageState extends State<ReaderPage>
 
   @override
   Widget build(BuildContext context) {
-    setting = box.get('defaults');
+    setting = settingsBox.get('defaults');
+    book = bookBox.get(widget.book.key)!;
 
     return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) => FutureBuilder(
-          future: TextUtils.loadPages(
-            widget.book.chapters[widget.book.lastReadChapterIndex ?? 0],
-            getTextStyle(context),
-            constraints.maxWidth,
-            constraints.maxHeight,
-          ),
-          builder: (context, snapshpt) {
-            if (snapshpt.hasData) {
-              pages = snapshpt.data!;
+      endDrawer: ChapterDrawer(
+        book: book,
+        nowChapter: book.lastReadChapterIndex,
+        onChapterChange: (index) {
+          book.lastReadPosition = 0;
+          book.lastReadChapterIndex = index;
+          book.save();
+        },
+      ),
+      body: Stack(
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) => FutureBuilder(
+              future: TextUtils.loadPages(
+                book.chapters[book.lastReadChapterIndex],
+                getTextStyle(context),
+                constraints.maxWidth,
+                constraints.maxHeight,
+              ),
+              builder: (context, snapshpt) {
+                if (snapshpt.hasData) {
+                  pages = snapshpt.data!;
 
-              nowPage = 0;
-              int pos = 0;
-              for (final page in pages) {
-                if (pos + page.length > (widget.book.lastReadPosition ?? 0)) {
-                  break;
-                }
-                pos += page.length;
-                nowPage++;
-              }
-              pageController ??= PageController(
-                keepPage: true,
-                initialPage: nowPage,
-              );
+                  nowPage = 0;
+                  if (book.lastReadPosition < 0) {
+                    int pos = 0;
+                    for (var i = 0; i < pages.length - 1; i++) {
+                      pos += pages[i].length;
+                      nowPage++;
+                    }
+                    nowPage = pages.length - 1;
+                    book.lastReadPosition = pos;
+                  } else {
+                    int pos = 0;
+                    for (final page in pages) {
+                      if (pos + page.length > book.lastReadPosition) {
+                        break;
+                      }
+                      pos += page.length;
+                      nowPage++;
+                    }
+                  }
 
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (BuildContext context,
-                          Animation<double> animation,
-                          Animation<double> secondaryAnimation) {
-                        return ReaderList(
-                          book: widget.book,
-                          pages: pages,
-                          textStyle: getTextStyle(context),
-                          parentConstraints: constraints,
-                          initPage: nowPage,
-                          onPageChange: (index) {
-                            pageController?.jumpToPage(index);
-                            int pos = 0;
-                            for (var i = 0; i < index; i++) {
-                              pos += pages[i].length;
-                            }
-                            widget.book.lastReadPosition = pos;
-                          },
-                          onChapterChange: (index) {
-                            widget.book.lastReadChapterIndex = index;
-                            widget.book.save();
-                          },
-                        );
+                  return Builder(builder: (context) {
+                    return TextPage(
+                      pageController: pageController,
+                      pages: pages,
+                      textStyle: getTextStyle(context),
+                      onPageChange: (index) {
+                        nowPage = index;
+                        sliderVal.value = nowPage / (pages.length - 1) * 100;
+
+                        int pos = 0;
+                        for (var i = 0; i < index; i++) {
+                          pos += pages[i].length;
+                        }
+                        book.lastReadPosition = pos;
                       },
-                    ),
+                      previousChapter: () {
+                        if (book.lastReadChapterIndex > 0) {
+                          book.lastReadPosition = -1;
+                          book.lastReadChapterIndex--;
+                          book.save();
+                        }
+                      },
+                      nextChapter: () {
+                        if (book.lastReadChapterIndex <
+                            book.chapters.length - 1) {
+                          book.lastReadPosition = 0;
+                          book.lastReadChapterIndex++;
+                          book.save();
+                        }
+                      },
+                      onOpenSetting: () {
+                        showSetting.value = !showSetting.value;
+                      },
+                    );
+                  });
+                } else {
+                  return Center(
+                    child: CircularProgressIndicator(),
                   );
-                },
-                child: TextPage(
-                  pageController: pageController,
-                  pages: pages,
-                  textStyle: getTextStyle(context),
-                  onPageChange: (value) {
-                    nowPage = value;
-                  },
+                }
+              },
+            ),
+          ),
+          ListenableBuilder(
+            listenable: showSetting,
+            builder: (context, _) {
+              if (showSetting.value) {
+                _controller.forward();
+              } else {
+                _controller.reverse();
+              }
+              return FadeTransition(
+                opacity: _controller,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    AppBar(
+                      title: Text(book.title),
+                      actions: [
+                        IconButton(
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              builder: (context) => SettingPanel(),
+                            );
+                          },
+                          icon: Icon(Icons.more_horiz),
+                        ),
+                      ],
+                    ),
+                    BottomAppBar(
+                      child: ListenableBuilder(
+                        listenable: sliderVal,
+                        builder: (context, _) => Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text("${sliderVal.value.toInt()}%"),
+                            Expanded(
+                              child: Slider(
+                                min: 0,
+                                max: 100,
+                                value: sliderVal.value,
+                                onChanged: (index) {
+                                  sliderVal.value = index;
+                                  pageController?.jumpToPage(
+                                    (index / 100 * (pages.length - 1)).toInt(),
+                                  );
+                                },
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                Scaffold.of(context).openEndDrawer();
+                              },
+                              icon: Icon(Icons.list),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               );
-            } else {
-              return Center(
-                child: CircularProgressIndicator(),
-              );
-            }
-          },
-        ),
+            },
+          ),
+        ],
       ),
+    );
+  }
+}
+
+class ChapterDrawer extends StatelessWidget {
+  final Book book;
+  final ValueChanged<int>? onChapterChange;
+  final ValueNotifier<int?> nowChapter;
+
+  ChapterDrawer({
+    super.key,
+    required this.book,
+    required int? nowChapter,
+    this.onChapterChange,
+  }) : nowChapter = ValueNotifier(nowChapter);
+
+  String _formatChapterTitle(String content) {
+    final trimmed = content.trim();
+    if (trimmed.length > 20) {
+      return '${trimmed.substring(0, 20)}...';
+    }
+    return trimmed;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      child: ListView.builder(
+        controller: ScrollController(
+          keepScrollOffset: true,
+        ),
+        itemCount: book.chapters.length,
+        itemBuilder: (context, index) {
+          final chapterContent = book.chapters[index];
+          return ListenableBuilder(
+            builder: (context, _) {
+              return ListTile(
+                title: Text(
+                  _formatChapterTitle(chapterContent),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                selected: index == nowChapter.value,
+                onTap: () {
+                  onChapterChange?.call(index);
+                  Navigator.pop(context);
+                },
+              );
+            },
+            listenable: nowChapter,
+          );
+        },
+      ),
+    );
+  }
+}
+
+class SettingPanel extends StatefulWidget {
+  const SettingPanel({super.key});
+
+  @override
+  State<SettingPanel> createState() => _SettingPanelState();
+}
+
+class _SettingPanelState extends State<SettingPanel>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Box<ReaderSettings> box;
+  late ReaderSettings setting;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this);
+    box = Hive.box<ReaderSettings>('settings');
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    setting = box.get('defaults') ?? ReaderSettings();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ListTile(
+          title: const Text('字体大小'),
+          subtitle: Slider(
+            value: setting.fontSize,
+            min: 12,
+            max: 32,
+            divisions: 20,
+            label: setting.fontSize.round().toString(),
+            onChanged: (double fontSize) {
+              setting.fontSize = fontSize;
+              box.put('defaults', setting);
+              setState(() {});
+            },
+          ),
+        ),
+        ListTile(
+          title: const Text('行间距'),
+          subtitle: Slider(
+            value: setting.lineHeight,
+            min: 1.0,
+            max: 3.0,
+            divisions: 20,
+            label: setting.lineHeight.toStringAsFixed(1),
+            onChanged: (double lineHeight) {
+              setting.lineHeight = lineHeight;
+              box.put('defaults', setting);
+              setState(() {});
+            },
+          ),
+        ),
+      ],
     );
   }
 }

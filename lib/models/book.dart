@@ -8,10 +8,10 @@ class Book extends HiveObject {
   final String title;
 
   @HiveField(1)
-  int? lastReadChapterIndex;
+  int lastReadChapterIndex = 0;
 
   @HiveField(2)
-  int? lastReadPosition;
+  int lastReadPosition = 0;
 
   @HiveField(3)
   String content;
