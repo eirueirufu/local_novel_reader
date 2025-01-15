@@ -108,7 +108,10 @@ class _BookShelfPageState extends State<BookShelfPage>
               Hive.box<ReaderSettings>('settings').listenable(),
             ],
           ),
-          builder: (context, _) => ReaderPage(book: book),
+          builder: (context, _) => ReaderPage(
+            key: UniqueKey(),
+            book: book,
+          ),
         ),
       ),
     );

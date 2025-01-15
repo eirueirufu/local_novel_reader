@@ -28,19 +28,17 @@ class TextPage extends StatefulWidget {
 
 class _TextPageState extends State<TextPage> {
   int currentPage = 0;
-  PageController? pageController;
+  late PageController pageController;
 
   @override
   void initState() {
     super.initState();
+    pageController = widget.pageController ?? PageController();
+    currentPage = pageController.initialPage;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.pageController == null) {
-      pageController?.dispose();
-    }
-    pageController = widget.pageController ?? PageController();
     return LayoutBuilder(builder: (context, constraints) {
       return GestureDetector(
         onTapDown: (details) {
@@ -48,14 +46,14 @@ class _TextPageState extends State<TextPage> {
             if (currentPage <= 0) {
               widget.previousChapter?.call();
             } else {
-              pageController!.previousPage(
+              pageController.previousPage(
                   duration: kThemeChangeDuration, curve: Curves.linear);
             }
           } else if (details.localPosition.dx > constraints.maxWidth * 2 / 3) {
             if (currentPage >= widget.pages.length - 1) {
               widget.nextChapter?.call();
             } else {
-              pageController!.nextPage(
+              pageController.nextPage(
                   duration: kThemeChangeDuration, curve: Curves.linear);
             }
           } else {
@@ -95,5 +93,8 @@ class _TextPageState extends State<TextPage> {
   @override
   void dispose() {
     super.dispose();
+    if (widget.pageController == null) {
+      pageController.dispose();
+    }
   }
 }
