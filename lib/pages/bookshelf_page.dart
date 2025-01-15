@@ -73,7 +73,6 @@ class _BookShelfPageState extends State<BookShelfPage>
             onLongPress: () => _deleteBook(context, book),
             leading: Icon(
               Icons.book,
-              color: Theme.of(context).primaryColor,
             ),
             title: Text(
               book.title,

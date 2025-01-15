@@ -63,155 +63,161 @@ class _ReaderPageState extends State<ReaderPage>
           widget.book.save();
         },
       ),
-      body: Stack(
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) => FutureBuilder(
-              future: TextUtils.loadPages(
-                widget.book.chapters[widget.book.lastReadChapterIndex],
-                getTextStyle(context),
-                constraints.maxWidth,
-                constraints.maxHeight,
-              ),
-              builder: (context, snapshpt) {
-                if (snapshpt.hasData) {
-                  pages = snapshpt.data!;
+      body: SafeArea(
+        child: Stack(
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) => FutureBuilder(
+                future: TextUtils.loadPages(
+                  widget.book.chapters[widget.book.lastReadChapterIndex],
+                  getTextStyle(context),
+                  constraints.maxWidth,
+                  constraints.maxHeight,
+                ),
+                builder: (context, snapshpt) {
+                  if (snapshpt.hasData) {
+                    pages = snapshpt.data!;
 
-                  nowPage = 0;
-                  if (widget.book.lastReadPosition < 0) {
-                    int pos = 0;
-                    for (var i = 0; i < pages.length - 1; i++) {
-                      pos += pages[i].length;
-                    }
-                    nowPage = pages.length - 1;
-                    widget.book.lastReadPosition = pos;
-                  } else {
-                    int pos = 0;
-                    for (final page in pages) {
-                      if (pos + page.length > widget.book.lastReadPosition) {
-                        break;
-                      }
-                      pos += page.length;
-                      nowPage++;
-                    }
-                  }
-
-                  pageController = PageController(
-                    initialPage: nowPage,
-                  );
-
-                  return TextPage(
-                    key: UniqueKey(),
-                    pageController: pageController,
-                    pages: pages,
-                    textStyle: getTextStyle(context),
-                    onPageChange: (index) {
-                      nowPage = index;
-                      updateSliderVal();
-
+                    nowPage = 0;
+                    if (widget.book.lastReadPosition < 0) {
                       int pos = 0;
-                      for (var i = 0; i < index; i++) {
+                      for (var i = 0; i < pages.length - 1; i++) {
                         pos += pages[i].length;
                       }
+                      nowPage = pages.length - 1;
                       widget.book.lastReadPosition = pos;
-                    },
-                    previousChapter: () {
-                      if (widget.book.lastReadChapterIndex > 0) {
-                        widget.book.lastReadPosition = -1;
-                        widget.book.lastReadChapterIndex--;
-                        widget.book.updateLastReadTime();
+                    } else {
+                      int pos = 0;
+                      for (final page in pages) {
+                        if (pos + page.length > widget.book.lastReadPosition) {
+                          break;
+                        }
+                        pos += page.length;
+                        nowPage++;
                       }
-                    },
-                    nextChapter: () {
-                      if (widget.book.lastReadChapterIndex <
-                          widget.book.chapters.length - 1) {
-                        widget.book.lastReadPosition = 0;
-                        widget.book.lastReadChapterIndex++;
-                        widget.book.updateLastReadTime();
-                      }
-                    },
-                    onOpenSetting: () {
-                      updateSliderVal();
-                      showSetting.value = !showSetting.value;
-                    },
-                  );
-                } else {
-                  return Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
-              },
+                    }
+
+                    pageController = PageController(
+                      initialPage: nowPage,
+                    );
+
+                    return TextPage(
+                      key: UniqueKey(),
+                      pageController: pageController,
+                      pages: pages,
+                      textStyle: getTextStyle(context),
+                      onPageChange: (index) {
+                        nowPage = index;
+                        updateSliderVal();
+
+                        int pos = 0;
+                        for (var i = 0; i < index; i++) {
+                          pos += pages[i].length;
+                        }
+                        widget.book.lastReadPosition = pos;
+                      },
+                      previousChapter: () {
+                        if (widget.book.lastReadChapterIndex > 0) {
+                          widget.book.lastReadPosition = -1;
+                          widget.book.lastReadChapterIndex--;
+                          widget.book.updateLastReadTime();
+                        }
+                      },
+                      nextChapter: () {
+                        if (widget.book.lastReadChapterIndex <
+                            widget.book.chapters.length - 1) {
+                          widget.book.lastReadPosition = 0;
+                          widget.book.lastReadChapterIndex++;
+                          widget.book.updateLastReadTime();
+                        }
+                      },
+                      onOpenSetting: () {
+                        updateSliderVal();
+                        showSetting.value = !showSetting.value;
+                      },
+                    );
+                  } else {
+                    return Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+                },
+              ),
             ),
-          ),
-          ListenableBuilder(
-            listenable: showSetting,
-            builder: (context, _) {
-              if (showSetting.value) {
-                _controller.forward();
-              } else {
-                _controller.reverse();
-              }
-              return FadeTransition(
-                opacity: _controller,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    AppBar(
-                      title: Text(widget.book.title),
-                      actions: [
-                        IconButton(
-                          onPressed: () {
-                            showModalBottomSheet(
-                              context: context,
-                              builder: (context) => SettingPanel(),
-                            );
-                          },
-                          icon: Icon(Icons.more_horiz),
-                        ),
-                      ],
-                    ),
-                    BottomAppBar(
-                      child: ListenableBuilder(
-                        listenable: sliderVal,
-                        builder: (context, _) => Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text("${sliderVal.value.toInt()}%"),
-                            Expanded(
-                              child: Slider(
-                                min: 0,
-                                max: 100,
-                                value: sliderVal.value,
-                                onChanged: (index) {
-                                  sliderVal.value = index;
-                                  pageController?.jumpToPage(
-                                    (index / 100 * (pages.length - 1)).toInt(),
-                                  );
-                                },
+            ListenableBuilder(
+              listenable: showSetting,
+              builder: (context, _) {
+                if (showSetting.value) {
+                  _controller.forward();
+                } else {
+                  _controller.reverse();
+                }
+                return FadeTransition(
+                  opacity: _controller,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      AppBar(
+                        title: Text(widget.book.title),
+                        actions: [
+                          IconButton(
+                            onPressed: () {
+                              showModalBottomSheet(
+                                context: context,
+                                builder: (context) => SettingPanel(),
+                              );
+                            },
+                            icon: Icon(Icons.more_horiz),
+                          ),
+                        ],
+                      ),
+                      BottomAppBar(
+                        child: ListenableBuilder(
+                          listenable: sliderVal,
+                          builder: (context, _) => Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text("${sliderVal.value.toInt()}%"),
+                              Expanded(
+                                child: Slider(
+                                  min: 0,
+                                  max: 100,
+                                  value: sliderVal.value,
+                                  onChanged: (index) {
+                                    sliderVal.value = index;
+                                    pageController?.jumpToPage(
+                                      (index / 100 * (pages.length - 1))
+                                          .toInt(),
+                                    );
+                                  },
+                                ),
                               ),
-                            ),
-                            IconButton(
-                              onPressed: () {
-                                Scaffold.of(context).openEndDrawer();
-                              },
-                              icon: Icon(Icons.list),
-                            ),
-                          ],
+                              IconButton(
+                                onPressed: () {
+                                  Scaffold.of(context).openEndDrawer();
+                                },
+                                icon: Icon(Icons.list),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
 
   void updateSliderVal() {
+    if (pages.length == 1) {
+      return;
+    }
     sliderVal.value = nowPage / (pages.length - 1) * 100;
   }
 }
