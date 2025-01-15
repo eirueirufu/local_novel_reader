@@ -164,7 +164,9 @@ class _ReaderPageState extends State<ReaderPage>
                             onPressed: () {
                               showModalBottomSheet(
                                 context: context,
-                                builder: (context) => SettingPanel(),
+                                builder: (context) => SettingPanel(
+                                  book: widget.book,
+                                ),
                               );
                             },
                             icon: Icon(Icons.more_horiz),
@@ -276,7 +278,11 @@ class ChapterDrawer extends StatelessWidget {
 }
 
 class SettingPanel extends StatefulWidget {
-  const SettingPanel({super.key});
+  final Book book;
+  const SettingPanel({
+    super.key,
+    required this.book,
+  });
 
   @override
   State<SettingPanel> createState() => _SettingPanelState();
@@ -287,17 +293,20 @@ class _SettingPanelState extends State<SettingPanel>
   late AnimationController _controller;
   late Box<ReaderSettings> box;
   late ReaderSettings setting;
+  late TextEditingController textEditingController;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this);
     box = Hive.box<ReaderSettings>('settings');
+    textEditingController = TextEditingController();
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    textEditingController.dispose();
     super.dispose();
   }
 
@@ -337,7 +346,53 @@ class _SettingPanelState extends State<SettingPanel>
             },
           ),
         ),
+        ListTile(
+          title: const Text('章节分割'),
+          trailing: IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () => _showRegexDialog(context),
+          ),
+        ),
       ],
+    );
+  }
+
+  void _showRegexDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('自定义章节分割'),
+        content: TextField(
+          controller: textEditingController,
+          decoration: const InputDecoration(
+            hintText: '输入正则表达式',
+            helperText: r'例如: 第[a-z]章[\s\S]+?(?=第[a-z]章+|$)',
+            helperMaxLines: 3,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              try {
+                RegExp(textEditingController.text, caseSensitive: false);
+                widget.book
+                    .parseChapters(divPattern: textEditingController.text);
+                widget.book.save();
+                Navigator.pop(context);
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('无效的正则表达式')),
+                );
+              }
+            },
+            child: const Text('更新'),
+          ),
+        ],
+      ),
     );
   }
 }
