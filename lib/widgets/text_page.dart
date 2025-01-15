@@ -73,7 +73,6 @@ class _TextPageState extends State<TextPage> {
               ),
             );
           },
-          // itemCount: widget.pages.length,
           onPageChanged: (index) {
             currentPage = index;
             widget.onPageChange?.call(index);
