@@ -9,11 +9,13 @@ class TextPage extends StatefulWidget {
   final VoidCallback? onOpenSetting;
   final VoidCallback? previousChapter;
   final VoidCallback? nextChapter;
+  final BoxConstraints parentConstraints;
 
   TextPage({
     super.key,
     required this.pages,
     required this.textStyle,
+    required this.parentConstraints,
     this.onOffsetChange,
     this.pageController,
     this.onPageChange,
@@ -66,10 +68,15 @@ class _TextPageState extends State<TextPage> {
           itemCount: widget.pages.length,
           itemBuilder: (context, index) {
             return Container(
+              margin: EdgeInsets.all(8),
+              width: widget.parentConstraints.maxWidth - 16,
+              height: widget.parentConstraints.maxHeight - 16,
               color: Theme.of(context).scaffoldBackgroundColor,
-              child: Text(
-                widget.pages[index],
-                style: widget.textStyle,
+              child: CustomPaint(
+                painter: _Page(
+                  content: widget.pages[index],
+                  textStyle: widget.textStyle,
+                ),
               ),
             );
           },
@@ -95,5 +102,31 @@ class _TextPageState extends State<TextPage> {
     if (widget.pageController == null) {
       pageController.dispose();
     }
+  }
+}
+
+class _Page extends CustomPainter {
+  final String content;
+  final TextStyle textStyle;
+
+  _Page({
+    required this.content,
+    required this.textStyle,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final textPainter = TextPainter(
+      text: TextSpan(text: content, style: textStyle),
+      textDirection: TextDirection.ltr,
+      maxLines: null,
+    );
+    textPainter.layout(maxWidth: size.width, minWidth: size.width);
+    textPainter.paint(canvas, Offset.zero);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return false;
   }
 }

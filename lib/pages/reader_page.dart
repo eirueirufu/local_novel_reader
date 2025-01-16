@@ -48,6 +48,7 @@ class _ReaderPageState extends State<ReaderPage>
     return TextTheme.of(context).bodyMedium!.copyWith(
           fontSize: setting?.fontSize,
           height: setting?.lineHeight,
+          inherit: false,
         );
   }
 
@@ -71,8 +72,8 @@ class _ReaderPageState extends State<ReaderPage>
                 future: TextUtils.loadPages(
                   widget.book.chapters[widget.book.lastReadChapterIndex],
                   getTextStyle(context),
-                  constraints.maxWidth,
-                  constraints.maxHeight,
+                  constraints.maxWidth - 16,
+                  constraints.maxHeight - 16,
                 ),
                 builder: (context, snapshpt) {
                   if (snapshpt.hasData) {
@@ -105,6 +106,7 @@ class _ReaderPageState extends State<ReaderPage>
                       key: UniqueKey(),
                       pageController: pageController,
                       pages: pages,
+                      parentConstraints: constraints,
                       textStyle: getTextStyle(context),
                       onPageChange: (index) {
                         nowPage = index;
