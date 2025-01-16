@@ -24,6 +24,6 @@
 
 ## 软件截图
 
-<img src="./assets/imgs/1.png" width="250" alt="书架"/>
-<img src="./assets/imgs/2.png" width="250" alt="阅读"/>
-<img src="./assets/imgs/3.png" width="250" alt="设置"/>
+<p align="center">
+  <img src="./assets/images/演示.png" width="1440" alt="书架" />
+</p>
