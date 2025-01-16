@@ -1,5 +1,10 @@
 # local_novel_reader
 
+<p align="center">
+<img align="center" width="150px" src="./android/app/src/main/res/mipmap-xhdpi/ic_launcher.png">
+</p>
+
+
 一款轻量级本地小说阅读器。
 
 ## 开发背景
