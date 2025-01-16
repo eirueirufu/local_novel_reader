@@ -9,17 +9,11 @@ class ReaderSettings {
   double fontSize;
 
   @HiveField(1)
-  int backgroundColor;
-
-  @HiveField(2)
   double lineHeight;
 
   ReaderSettings({
     this.fontSize = 18,
     this.lineHeight = 1.5,
     Color backgroundColor = Colors.white,
-  }) : backgroundColor = backgroundColor.value;
-
-  Color get backgroundColorValue => Color(backgroundColor);
-  set backgroundColorValue(Color color) => backgroundColor = color.value;
+  });
 }

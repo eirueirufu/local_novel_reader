@@ -18,20 +18,17 @@ class ReaderSettingsAdapter extends TypeAdapter<ReaderSettings> {
     };
     return ReaderSettings(
       fontSize: fields[0] as double,
-      lineHeight: fields[2] as double,
-      backgroundColor: fields[1] as Color,
+      lineHeight: fields[1] as double,
     );
   }
 
   @override
   void write(BinaryWriter writer, ReaderSettings obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(2)
       ..writeByte(0)
       ..write(obj.fontSize)
       ..writeByte(1)
-      ..write(obj.backgroundColor)
-      ..writeByte(2)
       ..write(obj.lineHeight);
   }
 
