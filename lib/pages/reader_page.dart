@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:local_novel_reader/models/book.dart';
+import 'package:local_novel_reader/models/book_chapters.dart';
 import 'package:local_novel_reader/models/reader_settings.dart';
 import 'package:local_novel_reader/utils/text.dart';
 import 'package:local_novel_reader/widgets/text_page.dart';
@@ -17,9 +18,11 @@ class ReaderPage extends StatefulWidget {
 class _ReaderPageState extends State<ReaderPage>
     with SingleTickerProviderStateMixin {
   late Box<Book> bookBox;
+  late Box<BookChapters> chaptersBox;
   late Box<ReaderSettings> settingsBox;
   late List<String> pages;
   late AnimationController _controller;
+  late BookChapters chapters;
   PageController? pageController;
   ReaderSettings? setting;
   ValueNotifier<bool> showSetting = ValueNotifier(false);
@@ -31,6 +34,8 @@ class _ReaderPageState extends State<ReaderPage>
     super.initState();
     settingsBox = Hive.box<ReaderSettings>('settings');
     bookBox = Hive.box<Book>('books');
+    chaptersBox = Hive.box<BookChapters>('book_chapters');
+    chapters = chaptersBox.get(widget.book.key)!;
 
     _controller =
         AnimationController(vsync: this, duration: kThemeChangeDuration);
@@ -56,12 +61,10 @@ class _ReaderPageState extends State<ReaderPage>
   Widget build(BuildContext context) {
     return Scaffold(
       endDrawer: ChapterDrawer(
-        book: widget.book,
+        chapters: chapters,
         nowChapter: widget.book.lastReadChapterIndex,
         onChapterChange: (index) {
-          widget.book.lastReadPosition = 0;
-          widget.book.lastReadChapterIndex = index;
-          widget.book.save();
+          widget.book.updateLastReadChapterIndex(index);
         },
       ),
       body: SafeArea(
@@ -70,7 +73,7 @@ class _ReaderPageState extends State<ReaderPage>
             LayoutBuilder(
               builder: (context, constraints) => FutureBuilder(
                 future: TextUtils.loadPages(
-                  widget.book.chapters[widget.book.lastReadChapterIndex],
+                  chapters.chapters[widget.book.lastReadChapterIndex],
                   getTextStyle(context),
                   constraints.maxWidth - 16,
                   constraints.maxHeight - 16,
@@ -116,21 +119,17 @@ class _ReaderPageState extends State<ReaderPage>
                         for (var i = 0; i < index; i++) {
                           pos += pages[i].length;
                         }
-                        widget.book.lastReadPosition = pos;
+                        widget.book.updateLastReadPosition(pos);
                       },
                       previousChapter: () {
                         if (widget.book.lastReadChapterIndex > 0) {
-                          widget.book.lastReadPosition = -1;
-                          widget.book.lastReadChapterIndex--;
-                          widget.book.updateLastReadTime();
+                          widget.book.previousChapter();
                         }
                       },
                       nextChapter: () {
                         if (widget.book.lastReadChapterIndex <
-                            widget.book.chapters.length - 1) {
-                          widget.book.lastReadPosition = 0;
-                          widget.book.lastReadChapterIndex++;
-                          widget.book.updateLastReadTime();
+                            chapters.chapters.length - 1) {
+                          widget.book.nextChapter();
                         }
                       },
                       onOpenSetting: () {
@@ -168,6 +167,7 @@ class _ReaderPageState extends State<ReaderPage>
                                 context: context,
                                 builder: (context) => SettingPanel(
                                   book: widget.book,
+                                  chapters: chapters,
                                 ),
                               );
                             },
@@ -227,13 +227,13 @@ class _ReaderPageState extends State<ReaderPage>
 }
 
 class ChapterDrawer extends StatelessWidget {
-  final Book book;
+  final BookChapters chapters;
   final ValueChanged<int>? onChapterChange;
   final ValueNotifier<int?> nowChapter;
 
   ChapterDrawer({
     super.key,
-    required this.book,
+    required this.chapters,
     required int? nowChapter,
     this.onChapterChange,
   }) : nowChapter = ValueNotifier(nowChapter);
@@ -253,9 +253,9 @@ class ChapterDrawer extends StatelessWidget {
         controller: ScrollController(
           keepScrollOffset: true,
         ),
-        itemCount: book.chapters.length,
+        itemCount: chapters.chapters.length,
         itemBuilder: (context, index) {
-          final chapterContent = book.chapters[index];
+          final chapterContent = chapters.chapters[index];
           return ListenableBuilder(
             builder: (context, _) {
               return ListTile(
@@ -281,8 +281,11 @@ class ChapterDrawer extends StatelessWidget {
 
 class SettingPanel extends StatefulWidget {
   final Book book;
+  final BookChapters chapters;
+
   const SettingPanel({
     super.key,
+    required this.chapters,
     required this.book,
   });
 
@@ -381,8 +384,12 @@ class _SettingPanelState extends State<SettingPanel>
             onPressed: () {
               try {
                 RegExp(textEditingController.text, caseSensitive: false);
-                widget.book
+                widget.chapters
                     .parseChapters(divPattern: textEditingController.text);
+                widget.chapters.save();
+                widget.book
+                  ..lastReadPosition = 0
+                  ..lastReadChapterIndex = 0;
                 widget.book.save();
                 Navigator.pop(context);
               } catch (e) {

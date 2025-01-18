@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:local_novel_reader/models/book.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:local_novel_reader/models/book_chapters.dart';
 import 'package:local_novel_reader/models/reader_settings.dart';
 import 'package:local_novel_reader/pages/reader_page.dart';
 
@@ -19,12 +20,14 @@ class _BookShelfPageState extends State<BookShelfPage>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Box<Book> box;
+  late Box<BookChapters> chaptersBox;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this);
     box = Hive.box<Book>('books');
+    chaptersBox = Hive.box<BookChapters>('book_chapters');
   }
 
   List<Book> get books {
@@ -103,8 +106,9 @@ class _BookShelfPageState extends State<BookShelfPage>
         builder: (context) => ListenableBuilder(
           listenable: Listenable.merge(
             [
-              Hive.box<Book>('books').listenable(),
+              book,
               Hive.box<ReaderSettings>('settings').listenable(),
+              Hive.box<BookChapters>('book_chapters').listenable(),
             ],
           ),
           builder: (context, _) => ReaderPage(
@@ -129,10 +133,11 @@ class _BookShelfPageState extends State<BookShelfPage>
 
       final book = Book(
         title: fileName,
-        content: content,
       );
-
       await box.add(book);
+
+      final chapters = BookChapters(content: content);
+      await chaptersBox.put(book.key, chapters);
     }
   }
 
@@ -159,6 +164,7 @@ class _BookShelfPageState extends State<BookShelfPage>
     );
 
     if (confirmed == true) {
+      await chaptersBox.delete(book.key);
       await book.delete();
     }
   }

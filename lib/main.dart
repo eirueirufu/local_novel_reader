@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:local_novel_reader/models/book_chapters.dart';
 import 'pages/bookshelf_page.dart';
 import 'models/book.dart';
 import 'models/reader_settings.dart';
@@ -9,9 +10,11 @@ void main() async {
   await Hive.initFlutter();
 
   Hive.registerAdapter(BookAdapter());
+  Hive.registerAdapter(BookChaptersAdapter());
   Hive.registerAdapter(ReaderSettingsAdapter());
 
   await Hive.openBox<Book>('books');
+  await Hive.openBox<BookChapters>('book_chapters');
   await Hive.openBox<ReaderSettings>('settings');
 
   runApp(MyApp());

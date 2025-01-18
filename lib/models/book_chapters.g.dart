@@ -1,41 +1,34 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'book.dart';
+part of 'book_chapters.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
 // **************************************************************************
 
-class BookAdapter extends TypeAdapter<Book> {
+class BookChaptersAdapter extends TypeAdapter<BookChapters> {
   @override
-  final int typeId = 0;
+  final int typeId = 3;
 
   @override
-  Book read(BinaryReader reader) {
+  BookChapters read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return Book(
-      title: fields[0] as String,
-    )
-      ..lastReadChapterIndex = fields[1] as int
-      ..lastReadPosition = fields[2] as int
-      ..lastReadTime = fields[3] as DateTime?;
+    return BookChapters(
+      content: fields[1] as String,
+    )..chapters = (fields[2] as List).cast<String>();
   }
 
   @override
-  void write(BinaryWriter writer, Book obj) {
+  void write(BinaryWriter writer, BookChapters obj) {
     writer
-      ..writeByte(4)
-      ..writeByte(0)
-      ..write(obj.title)
-      ..writeByte(1)
-      ..write(obj.lastReadChapterIndex)
       ..writeByte(2)
-      ..write(obj.lastReadPosition)
-      ..writeByte(3)
-      ..write(obj.lastReadTime);
+      ..writeByte(1)
+      ..write(obj.content)
+      ..writeByte(2)
+      ..write(obj.chapters);
   }
 
   @override
@@ -44,7 +37,7 @@ class BookAdapter extends TypeAdapter<Book> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is BookAdapter &&
+      other is BookChaptersAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
